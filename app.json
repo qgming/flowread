@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "flowread",
+    "name": "流畅阅读",
     "slug": "flowread",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -30,6 +30,7 @@
       "eas": {
         "projectId": "449a196b-e504-4015-aee0-f142f66d98ed"
       }
-    }
+    },
+    "owner": "qgming"
   }
 }
