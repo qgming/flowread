@@ -34,23 +34,23 @@ export class ChatService {
   }
 
   /**
-   * 发送聊天请求
+   * 非流式聊天请求
    */
   async chat(options: ChatCompletionOptions): Promise<ChatResponse> {
-    const { messages, temperature = 1.0, maxTokens = 2000, stream = false } = options;
-
-    const requestBody = {
-      model: this.config.model,
-      messages: messages.map(msg => ({
-        role: msg.role,
-        content: msg.content
-      })),
-      temperature,
-      max_tokens: maxTokens,
-      stream
-    };
+    const { messages, temperature = 1.0, maxTokens = 2000 } = options;
 
     try {
+      const requestBody = {
+        model: this.config.model,
+        messages: messages.map(msg => ({
+          role: msg.role,
+          content: msg.content,
+        })),
+        temperature,
+        max_tokens: maxTokens,
+        stream: false,
+      };
+
       const response = await fetch(`${this.config.url}/chat/completions`, {
         method: 'POST',
         headers: {
@@ -61,103 +61,115 @@ export class ChatService {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
       
-      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-        throw new Error('Invalid response format');
+      const choice = data.choices?.[0];
+      if (!choice?.message?.content) {
+        throw new Error('Invalid response format: no content found');
       }
 
       return {
-        content: data.choices[0].message.content,
+        content: choice.message.content,
         usage: data.usage ? {
-          promptTokens: data.usage.prompt_tokens || 0,
-          completionTokens: data.usage.completion_tokens || 0,
-          totalTokens: data.usage.total_tokens || 0,
+          promptTokens: data.usage.prompt_tokens,
+          completionTokens: data.usage.completion_tokens,
+          totalTokens: data.usage.total_tokens,
         } : undefined,
       };
     } catch (error) {
       console.error('Chat API error:', error);
-      throw error;
+      throw this.handleError(error);
     }
   }
 
   /**
    * 流式聊天请求
    */
-  async *chatStream(options: ChatCompletionOptions): AsyncGenerator<StreamChunk, void, unknown> {
+  async *chatStream(options: Omit<ChatCompletionOptions, 'stream'>): AsyncGenerator<StreamChunk, void, unknown> {
     const { messages, temperature = 1.0, maxTokens = 2000 } = options;
 
-    const requestBody = {
-      model: this.config.model,
-      messages: messages.map(msg => ({
-        role: msg.role,
-        content: msg.content
-      })),
-      temperature,
-      max_tokens: maxTokens,
-      stream: true
-    };
-
     try {
+      const requestBody = {
+        model: this.config.model,
+        messages: messages.map(msg => ({
+          role: msg.role,
+          content: msg.content,
+        })),
+        temperature,
+        max_tokens: maxTokens,
+        stream: true,
+      };
+
       const response = await fetch(`${this.config.url}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${this.config.apiKey}`,
+          'Accept': 'text/event-stream',
         },
         body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('No response body');
+      if (!response.body) {
+        // 处理空响应体的情况，可能是某些API的特殊情况
+        console.warn('Response body is null, attempting to handle gracefully');
+        yield { content: '', isComplete: true };
+        return;
       }
 
+      const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) {
+            yield { content: '', isComplete: true };
+            break;
+          }
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+          buffer += decoder.decode(value, { stream: true });
+          
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') {
-              yield { content: '', isComplete: true };
-              return;
-            }
-
-            try {
-              const parsed = JSON.parse(data);
-              const delta = parsed.choices?.[0]?.delta;
-              if (delta?.content) {
-                yield { content: delta.content, isComplete: false };
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              
+              if (data === '[DONE]') {
+                yield { content: '', isComplete: true };
+                return;
               }
-            } catch (e) {
-              // 忽略解析错误
+
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices?.[0]?.delta?.content;
+                if (content) {
+                  yield { content, isComplete: false };
+                }
+              } catch (parseError) {
+                console.warn('Failed to parse SSE data:', parseError);
+                // 继续处理下一条数据，不中断流
+              }
             }
           }
         }
+      } finally {
+        reader.releaseLock();
       }
-
-      yield { content: '', isComplete: true };
     } catch (error) {
       console.error('Chat stream error:', error);
-      throw error;
+      throw this.handleError(error);
     }
   }
 
@@ -183,31 +195,32 @@ export class ChatService {
   }
 
   /**
-   * 获取支持的模型列表（如果API支持）
+   * 统一错误处理
    */
-  async getModels(): Promise<string[]> {
-    try {
-      const response = await fetch(`${this.config.url}/models`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${this.config.apiKey}`,
-        },
-      });
-
-      if (!response.ok) {
-        return [];
+  private handleError(error: any): Error {
+    if (error instanceof Error) {
+      const message = error.message.toLowerCase();
+      
+      if (message.includes('401') || message.includes('invalid api key') || message.includes('unauthorized')) {
+        return new Error('API密钥无效，请检查配置');
       }
-
-      const data = await response.json();
-      if (data.data && Array.isArray(data.data)) {
-        return data.data.map((model: any) => model.id || model.name).filter(Boolean);
+      if (message.includes('404') || message.includes('model not found') || message.includes('not found')) {
+        return new Error('模型不存在或API地址错误');
       }
-
-      return [];
-    } catch (error) {
-      console.error('Get models error:', error);
-      return [];
+      if (message.includes('429') || message.includes('rate limit')) {
+        return new Error('请求过于频繁，请稍后再试');
+      }
+      if (message.includes('500') || message.includes('internal server error')) {
+        return new Error('服务器内部错误，请稍后再试');
+      }
+      if (message.includes('network') || message.includes('fetch') || message.includes('failed')) {
+        return new Error('网络连接失败，请检查网络设置');
+      }
+      
+      return error;
     }
+    
+    return new Error('未知错误，请稍后重试');
   }
 }
 
@@ -222,17 +235,8 @@ export const createChatService = (config: AIProviderConfig): ChatService => {
  * 格式化错误消息
  */
 export const formatChatError = (error: any): string => {
-  if (error.message?.includes('401')) {
-    return 'API密钥无效，请检查配置';
+  if (error instanceof Error) {
+    return error.message;
   }
-  if (error.message?.includes('404')) {
-    return '模型不存在或API地址错误';
-  }
-  if (error.message?.includes('429')) {
-    return '请求过于频繁，请稍后再试';
-  }
-  if (error.message?.includes('500')) {
-    return '服务器内部错误，请稍后再试';
-  }
-  return error.message || '网络错误，请检查网络连接';
+  return '网络错误，请检查网络连接';
 };

@@ -40,7 +40,7 @@ export class EnhancedTranslationService implements TranslationService {
         messages: [
           { role: 'user', content: prompt }
         ],
-        maxTokens: 2000,
+        maxTokens: 4000,
       });
 
       return response.content.trim();

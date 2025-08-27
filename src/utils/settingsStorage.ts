@@ -15,6 +15,13 @@ export interface DeepLXConfig {
   apiKey: string;
 }
 
+export interface AnalysisSettings {
+  wordAnalysisProvider: keyof Settings['aiProviders'];
+  wordAnalysisPrompt: string;
+  articleAnalysisProvider: keyof Settings['aiProviders'];
+  articleAnalysisPrompt: string;
+}
+
 export interface TranslationSettings {
   targetLanguage: string;
   translationEngine: 'deeplx' | 'deepseek' | 'siliconflow' | 'zhipu';
@@ -30,6 +37,7 @@ export interface Settings {
   };
   deeplx: DeepLXConfig;
   translation: TranslationSettings;
+  analysis: AnalysisSettings;
 }
 
 const SETTINGS_KEY = 'app_settings';
@@ -75,11 +83,19 @@ export const defaultTranslationSettings: TranslationSettings = {
   translationPrompt: '请将以下文本翻译成{targetLanguage}，保持原意准确，语言自然流畅：\n\n{text}',
 };
 
+export const defaultAnalysisSettings: AnalysisSettings = {
+  wordAnalysisProvider: 'deepseek',
+  wordAnalysisPrompt: '你是一名全国知名的英语老师，面向高中生教学，风趣幽默，简洁明了，请详细分析以下单词的含义和用法：\n\n单词：{word}\n上下文：{context}\n\n请提供：\n1. 词性和音标\n2. 例句（至少2个）\n3. 常见搭配\n4. 同义词/反义词（如有）\n5. 一句话辅助记忆',
+  articleAnalysisPrompt: '请对以下文章进行深度分析：\n\n文章标题：{title}\n文章内容：{content}\n\n请提供：\n1. 文章主旨和核心观点\n2. 段落结构分析\n3. 关键句子和表达\n4. 生词难句解析\n5. 写作手法和修辞特点\n6. 适合学习的语言点\n\n请用中文进行分析，语言简洁明了。',
+  articleAnalysisProvider: 'deepseek',
+};
+
 export const defaultSettings: Settings = {
   isDarkMode: false,
   aiProviders: defaultAIProviders,
   deeplx: defaultDeepLXConfig,
   translation: defaultTranslationSettings,
+  analysis: defaultAnalysisSettings,
 };
 
 export const saveSettings = async (settings: Settings): Promise<void> => {
@@ -109,6 +125,10 @@ export const loadSettings = async (): Promise<Settings> => {
         translation: {
           ...defaultTranslationSettings,
           ...(parsed.translation || {}),
+        },
+        analysis: {
+          ...defaultAnalysisSettings,
+          ...(parsed.analysis || {}),
         },
       };
     }

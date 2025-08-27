@@ -106,15 +106,12 @@ export default function ReadingScreen({ navigation }: any) {
       return;
     }
 
-    const tagArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag);
-    
     try {
-      await Database.insertArticle(title.trim(), content.trim(), tagArray);
+      await Database.insertArticle(title.trim(), content.trim(), []);
       await loadArticles();
       
       setTitle('');
       setContent('');
-      setTags('');
       setPasteModalVisible(false);
       
       Alert.alert('成功', '文章保存成功');
@@ -286,13 +283,6 @@ export default function ReadingScreen({ navigation }: any) {
               numberOfLines={6}
             />
             
-            <TextInput
-              style={styles.input}
-              placeholder="标签（用逗号分隔）"
-              value={tags}
-              onChangeText={setTags}
-            />
-            
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={styles.cancelButton}
@@ -409,7 +399,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   textArea: {
-    height: 120,
+    height: 160,
     textAlignVertical: 'top',
   },
   modalButtons: {

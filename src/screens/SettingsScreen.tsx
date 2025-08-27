@@ -5,7 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { loadSettings, updateSetting } from '../utils/settingsStorage';
 
-type SettingsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'AISettings' | 'DeepLXSettings' | 'TranslationSettings'>;
+type SettingsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'AISettings' | 'DeepLXSettings' | 'TranslationSettings' | 'AnalysisSettings'>;
 
 export default function SettingsScreen() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -34,6 +34,10 @@ export default function SettingsScreen() {
     navigation.navigate('TranslationSettings');
   };
 
+  const navigateToAnalysisSettings = () => {
+    navigation.navigate('AnalysisSettings' as any);
+  };
+
   return (
     <View style={styles.container}>    
       <View style={styles.content}>
@@ -53,12 +57,23 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-                {/* 翻译服务设置卡片 */}
+        {/* 翻译服务设置卡片 */}
         <TouchableOpacity style={styles.card} onPress={navigateToTranslationSettings}>
           <View style={styles.cardContent}>
             <View style={styles.cardLeft}>
               <Text style={styles.cardTitle}>翻译偏好</Text>
               <Text style={styles.cardDescription}>配置翻译引擎、目标语言和提示词</Text>
+            </View>
+            <Text style={styles.arrow}>›</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* 解析服务设置卡片 */}
+        <TouchableOpacity style={styles.card} onPress={navigateToAnalysisSettings}>
+          <View style={styles.cardContent}>
+            <View style={styles.cardLeft}>
+              <Text style={styles.cardTitle}>解析服务</Text>
+              <Text style={styles.cardDescription}>配置单词和文章解析的AI模型与提示词</Text>
             </View>
             <Text style={styles.arrow}>›</Text>
           </View>
@@ -85,7 +100,6 @@ export default function SettingsScreen() {
             <Text style={styles.arrow}>›</Text>
           </View>
         </TouchableOpacity>
-
 
       </View>
     </View>

@@ -8,6 +8,7 @@ import AISettingsScreen from '../screens/AISettingsScreen';
 import AIProviderConfigScreen from '../screens/AIProviderConfigScreen';
 import DeepLXSettingsScreen from '../screens/DeepLXSettingsScreen';
 import TranslationSettingsScreen from '../screens/TranslationSettingsScreen';
+import AnalysisSettingsScreen from '../screens/AnalysisSettingsScreen';
 import { Article } from '../database/database';
 
 export type RootStackParamList = {
@@ -17,6 +18,7 @@ export type RootStackParamList = {
   AIProviderConfig: { provider: 'deepseek' | 'siliconflow' | 'zhipu' };
   DeepLXSettings: undefined;
   TranslationSettings: undefined;
+  AnalysisSettings: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -110,6 +112,22 @@ export default function RootNavigator() {
                 color: '#007AFF',
                 marginLeft: -25 
               }}>翻译偏好</Text>
+            ),
+            headerBackTitle: '返回',
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen 
+          name="AnalysisSettings" 
+          component={AnalysisSettingsScreen}
+          options={{
+            headerTitle: () => (
+              <Text style={{ 
+                fontSize: 18, 
+                fontWeight: '600', 
+                color: '#007AFF',
+                marginLeft: -25 
+              }}>解析服务</Text>
             ),
             headerBackTitle: '返回',
             headerShadowVisible: false,

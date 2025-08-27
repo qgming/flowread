@@ -1,15 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
   Alert,
   ActivityIndicator,
-  Modal,
-  TextInput,
   Clipboard,
+  TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Article } from '../database/database';
@@ -18,6 +16,10 @@ import { createEnhancedTranslationService } from '../services/enhancedTranslatio
 import { loadSettings } from '../utils/settingsStorage';
 import database from '../database/database';
 import BottomActionSheet from '../components/BottomActionSheet';
+import WordDefinitionSheet from '../components/WordDefinitionSheet';
+import ArticleHeader from '../components/ArticleHeader';
+import ArticleParagraph from '../components/ArticleParagraph';
+import TagModal from '../components/TagModal';
 
 type RootStackParamList = {
   Main: undefined;
@@ -48,7 +50,58 @@ export default function ArticleReaderScreen({ route, navigation }: Props) {
   const [targetLanguage, setTargetLanguage] = useState<string>('ZH');
   const [showCopySheet, setShowCopySheet] = useState(false);
   const [showTranslation, setShowTranslation] = useState(true);
+  const [showWordDefinition, setShowWordDefinition] = useState(false);
+  const [selectedWord, setSelectedWord] = useState('');
+  const [selectedContext, setSelectedContext] = useState('');
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // 配置导航栏按钮
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={styles.headerButtons}>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => setShowTranslation(!showTranslation)}
+          >
+            <Ionicons 
+              name={showTranslation ? "eye-outline" : "eye-off-outline"} 
+              size={22} 
+              color="#007AFF" 
+            />
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => setShowTagModal(true)}
+            disabled={!article}
+          >
+            <Ionicons name="pricetag-outline" size={22} color="#007AFF" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => setShowCopySheet(true)}
+            disabled={paragraphs.length === 0}
+          >
+            <Ionicons name="copy-outline" size={22} color="#007AFF" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={handleTranslateAll}
+            disabled={isTranslating || paragraphs.length === 0}
+          >
+            {isTranslating ? (
+              <ActivityIndicator size="small" color="#007AFF" />
+            ) : (
+              <Ionicons name="language-outline" size={24} color="#007AFF" />
+            )}
+          </TouchableOpacity>
+        </View>
+      ),
+    });
+  }, [navigation, isTranslating, paragraphs.length, article, showTranslation]);
 
   // 加载文章和翻译
   const loadArticle = useCallback(async () => {
@@ -115,82 +168,11 @@ export default function ArticleReaderScreen({ route, navigation }: Props) {
     }
   }, [articleId, article, targetLanguage]);
 
-  // 设置导航栏
-  useEffect(() => {
-    if (!article) return;
-
-    navigation.setOptions({
-      title: article.title,
-      headerStyle: { backgroundColor: '#f5f5f5' },
-      headerTintColor: '#007AFF',
-      headerTitleStyle: { fontWeight: '600', fontSize: 18 },
-      headerShadowVisible: false,
-      headerRight: () => (
-        <View style={styles.headerButtons}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => setShowTranslation(!showTranslation)}
-          >
-            <Ionicons 
-              name={showTranslation ? "eye-outline" : "eye-off-outline"} 
-              size={24} 
-              color="#007AFF" 
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => setShowTagModal(true)}
-            disabled={isUpdatingTags}
-          >
-            {isUpdatingTags ? (
-              <ActivityIndicator size="small" color="#007AFF" />
-            ) : (
-              <Ionicons name="pricetag-outline" size={24} color="#007AFF" />
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={handleTranslateAll}
-            disabled={isTranslating}
-          >
-            {isTranslating ? (
-              <ActivityIndicator size="small" color="#007AFF" />
-            ) : (
-              <Ionicons 
-                name="language-outline" 
-                size={24} 
-                color="#007AFF" 
-              />
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => setShowCopySheet(true)}
-          >
-            <Ionicons name="copy-outline" size={24} color="#007AFF" />
-          </TouchableOpacity>
-        </View>
-      ),
-    });
-  }, [navigation, article, isTranslating, paragraphs, tags, isUpdatingTags, targetLanguage, showTranslation]);
-
   const handleTranslateAll = async () => {
     if (paragraphs.length === 0) return;
-
-    // 检查是否已有翻译
-    const hasTranslations = paragraphs.some(p => p.translated);
-    if (hasTranslations) {
-      Alert.alert(
-        '重新翻译',
-        '已有翻译内容，是否重新翻译？',
-        [
-          { text: '取消', style: 'cancel' },
-          { text: '重新翻译', onPress: () => startTranslation() }
-        ]
-      );
-    } else {
-      startTranslation();
-    }
+    
+    // 直接清除已有翻译并开始新翻译，无需询问
+    startTranslation();
   };
 
   const startTranslation = async () => {
@@ -267,6 +249,12 @@ export default function ArticleReaderScreen({ route, navigation }: Props) {
       }
       return null;
     }
+  };
+
+  const handleWordPress = (word: string, context: string) => {
+    setSelectedWord(word);
+    setSelectedContext(context);
+    setShowWordDefinition(true);
   };
 
   const handleClearTranslations = () => {
@@ -410,103 +398,39 @@ export default function ArticleReaderScreen({ route, navigation }: Props) {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.contentContainer}>
-        <Text style={styles.title}>{article.title}</Text>
-        
-        <View style={styles.metaContainer}>
-          <View style={styles.capsulesContainer}>
-            <View style={styles.dateCapsule}>
-              <Text style={styles.dateText}>
-                {new Date(article.created_at).toLocaleDateString('zh-CN')}
-              </Text>
-            </View>
-            {article.translation_language && (
-              <View style={[styles.dateCapsule, styles.translationCapsule]}>
-                <Text style={styles.translationText}>
-                  {translationStatus} ({article.translation_language})
-                </Text>
-              </View>
-            )}
-            {tags.map((tag, index) => (
-              <TouchableOpacity
-                key={`${tag}-${index}`}
-                style={styles.tagCapsule}
-                onPress={() => handleRemoveTag(tag)}
-                disabled={isUpdatingTags}
-              >
-                <Text style={styles.tagText}>{tag}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+        <ArticleHeader
+          title={article.title}
+          createdAt={article.created_at}
+          translationStatus={translationStatus}
+          translationLanguage={article.translation_language}
+          tags={tags}
+          onRemoveTag={handleRemoveTag}
+          isUpdatingTags={isUpdatingTags}
+        />
 
         <View>
           {paragraphs.map((paragraph, index) => (
-            <View key={paragraph.id} style={styles.paragraphWrapper}>
-              <Text style={styles.originalText}>{paragraph.original}</Text>
-              
-              {paragraph.translated && showTranslation && (
-                <View>
-                  <Text style={styles.translatedText}>{paragraph.translated}</Text>
-                </View>
-              )}
-
-              {paragraph.error && (
-                <View style={styles.errorContainer}>
-                  <Text style={styles.errorMessage}>{paragraph.error}</Text>
-                </View>
-              )}
-
-              {paragraph.isTranslating && (
-                <View style={styles.translatingContainer}>
-                  <ActivityIndicator size="small" color="#007AFF" />
-                  <Text style={styles.translatingText}>翻译中...</Text>
-                </View>
-              )}
-            </View>
+            <ArticleParagraph
+              key={paragraph.id}
+              original={paragraph.original}
+              translated={paragraph.translated}
+              isTranslating={paragraph.isTranslating}
+              error={paragraph.error}
+              showTranslation={showTranslation}
+              onWordPress={handleWordPress}
+            />
           ))}
         </View>
       </View>
 
-      <Modal
-        animationType="fade"
-        transparent
+      <TagModal
         visible={showTagModal}
-        onRequestClose={() => setShowTagModal(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>添加标签</Text>
-            <TextInput
-              style={styles.tagInput}
-              placeholder="请输入标签"
-              value={newTag}
-              onChangeText={setNewTag}
-              maxLength={20}
-              autoFocus
-              returnKeyType="done"
-              onSubmitEditing={handleAddTag}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => {
-                  setShowTagModal(false);
-                  setNewTag('');
-                }}
-              >
-                <Text style={styles.cancelButtonText}>取消</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.confirmButton]}
-                onPress={handleAddTag}
-                disabled={!newTag.trim()}
-              >
-                <Text style={styles.confirmButtonText}>添加</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setShowTagModal(false)}
+        newTag={newTag}
+        onNewTagChange={setNewTag}
+        onAddTag={handleAddTag}
+        isUpdatingTags={isUpdatingTags}
+      />
 
       <BottomActionSheet
         visible={showCopySheet}
@@ -517,6 +441,13 @@ export default function ArticleReaderScreen({ route, navigation }: Props) {
           { title: '全部复制', onPress: handleCopyAll },
         ]}
         title="复制文章"
+      />
+
+      <WordDefinitionSheet
+        visible={showWordDefinition}
+        onClose={() => setShowWordDefinition(false)}
+        word={selectedWord}
+        context={selectedContext}
       />
     </ScrollView>
   );
@@ -535,88 +466,8 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     paddingHorizontal: 20,
-    paddingTop:6,
-    paddingBottom:20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1a1a1a',
-    marginBottom: 12,
-    lineHeight: 36,
-  },
-  metaContainer: {
-    marginBottom: 10,
-  },
-  capsulesContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  dateCapsule: {
-    backgroundColor: '#e0e0e0',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  dateText: {
-    fontSize: 12,
-    color: '#555555',
-  },
-  translationCapsule: {
-    backgroundColor: '#e8f5e8',
-  },
-  translationText: {
-    fontSize: 12,
-    color: '#2e7d32',
-  },
-  tagCapsule: {
-    backgroundColor: '#e3f2fd',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  tagText: {
-    fontSize: 12,
-    color: '#1565c0',
-  },
-  paragraphWrapper: {
-    marginBottom: 10,
-  },
-  originalText: {
-    fontSize: 18,
-    lineHeight: 32,
-    color: '#000',
-    textAlign:'auto',
-  },
-  translatedText: {
-     marginTop: 10,
-    fontSize: 18,
-    lineHeight: 32,
-    color: '#777',
-    textAlign:'auto',
-  },
-  errorContainer: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: '#fff5f5',
-    borderRadius: 8,
-  },
-  errorMessage: {
-    fontSize: 14,
-    color: '#ff3b30',
-  },
-  translatingContainer: {
-    marginTop: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-  },
-  translatingText: {
-    fontSize: 14,
-    color: '#007AFF',
-    marginLeft: 8,
+    paddingTop: 6,
+    paddingBottom: 20,
   },
   loadingText: {
     fontSize: 16,
@@ -626,65 +477,10 @@ const styles = StyleSheet.create({
   headerButtons: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 10,
   },
   headerButton: {
-    padding: 6,
-    marginRight: 8,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    marginHorizontal: 20,
-    width: '80%',
-    maxWidth: 300,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  tagInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginHorizontal: 5,
-  },
-  cancelButton: {
-    backgroundColor: '#f5f5f5',
-  },
-  confirmButton: {
-    backgroundColor: '#007AFF',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-  },
-  confirmButtonText: {
-    fontSize: 16,
-    color: '#fff',
-    textAlign: 'center',
+    marginLeft: 15,
+    padding: 5,
   },
 });
