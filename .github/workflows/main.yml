@@ -31,7 +31,7 @@ jobs:
         run: npm ci
 
       - name: Build on EAS
-        run: eas build --profile preview --platform ios
+        run: eas build --profile preview --platform android
 
       - name: Update on Expo
         run: eas update --auto
