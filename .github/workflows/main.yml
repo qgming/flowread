@@ -1,33 +1,28 @@
-name: EAS Build
-
 on:
-  workflow_dispatch:
   push:
     branches:
-      - master
-  pull_request:
-    branches: [master]
-
+      - main
 jobs:
-  build:
-    name: Install and build
+  update:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - name: 🏗 Setup repo
+        uses: actions/checkout@v3
+
+      - name: 🏗 Setup Node
+        uses: actions/setup-node@v3
         with:
-          node-version: 16.x
-          cache: npm
-      - name: Setup Expo and EAS
+          node-version: 18.x
+          cache: yarn
+
+      - name: 🏗 Setup EAS
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
-          token: ${{ secrets.cKokj_-Hmmvg41NVhoTw-MYliiQIK-DgVW0jvgkT }}
-      - name: Install dependencies
-        run: npm install
-      - name: Install expo CLI
-        run: npm install -g expo-cli
-      - name: Publish on expo server
-        run: eas build --profile preview --platform ios
-      - name: Update on Expo
-        run: eas update --auto
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 📦 Install dependencies
+        run: yarn install
+
+      - name: 🚀 Create update
+        run: eas update --auto --non-interactive
