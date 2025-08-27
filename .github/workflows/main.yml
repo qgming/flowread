@@ -13,21 +13,25 @@ jobs:
     name: Install and build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 16.x
+          node-version: 18.x
           cache: npm
+
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
+
       - name: Install dependencies
-        run: npm install
-      - name: Install expo CLI
-        run: npm install -g expo-cli
-      - name: Publish on expo server
+        run: npm ci
+
+      - name: Build on EAS
         run: eas build --profile preview --platform ios
+
       - name: Update on Expo
         run: eas update --auto
