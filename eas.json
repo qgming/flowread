@@ -1,12 +1,10 @@
 {
   "cli": {
-    "version": ">= 12.5.1",
-    "appVersionSource": "remote",
-    "requireCommit": true
+    "version": ">= 16.17.4",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
-      "environment": "production",
       "developmentClient": true,
       "distribution": "internal"
     },
