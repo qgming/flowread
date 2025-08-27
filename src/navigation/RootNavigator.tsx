@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { View, Text } from 'react-native';
 import BottomTabNavigator from './BottomTabNavigator';
 import ArticleReaderScreen from '../screens/ArticleReaderScreen';
 import AISettingsScreen from '../screens/AISettingsScreen';
@@ -54,7 +55,14 @@ export default function RootNavigator() {
           name="AISettings" 
           component={AISettingsScreen}
           options={{
-            headerTitle: 'AI设置',
+            headerTitle: () => (
+              <Text style={{ 
+                fontSize: 18, 
+                fontWeight: '600', 
+                color: '#007AFF',
+                marginLeft: -25 
+              }}>AI设置</Text>
+            ),
             headerBackTitle: '返回',
             headerShadowVisible: false,
           }}
@@ -63,7 +71,14 @@ export default function RootNavigator() {
           name="AIProviderConfig" 
           component={AIProviderConfigScreen}
           options={{
-            headerTitle: 'AI提供商配置',
+            headerTitle: () => (
+              <Text style={{ 
+                 fontSize: 18, 
+                fontWeight: '600', 
+                color: '#007AFF',
+                marginLeft: -25
+              }}>提供商配置</Text>
+            ),
             headerBackTitle: '返回',
             headerShadowVisible: false,
           }}
@@ -72,7 +87,14 @@ export default function RootNavigator() {
           name="DeepLXSettings" 
           component={DeepLXSettingsScreen}
           options={{
-            headerTitle: 'DeepLX设置',
+            headerTitle: () => (
+              <Text style={{ 
+                 fontSize: 18, 
+                fontWeight: '600', 
+                color: '#007AFF',
+                marginLeft: -25
+              }}>DeepL设置</Text>
+            ),
             headerBackTitle: '返回',
             headerShadowVisible: false,
           }}
@@ -81,7 +103,14 @@ export default function RootNavigator() {
           name="TranslationSettings" 
           component={TranslationSettingsScreen}
           options={{
-            headerTitle: '翻译服务设置',
+            headerTitle: () => (
+              <Text style={{ 
+                fontSize: 18, 
+                fontWeight: '600', 
+                color: '#007AFF',
+                marginLeft: -25 
+              }}>翻译偏好</Text>
+            ),
             headerBackTitle: '返回',
             headerShadowVisible: false,
           }}

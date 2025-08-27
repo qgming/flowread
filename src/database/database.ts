@@ -9,6 +9,9 @@ export interface Article {
   created_at: string;
   updated_at: string;
   tags: string[];
+  translations?: { [key: string]: string };
+  translation_language?: string;
+  translation_updated_at?: string;
 }
 
 class Database {
@@ -25,7 +28,10 @@ class Database {
           content TEXT NOT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          tags TEXT
+          tags TEXT,
+          translations TEXT,
+          translation_language TEXT,
+          translation_updated_at DATETIME
         );
       `);
       
@@ -46,8 +52,30 @@ class Database {
       content: row.content,
       created_at: row.created_at,
       updated_at: row.updated_at,
-      tags: row.tags ? JSON.parse(row.tags) : []
+      tags: row.tags ? JSON.parse(row.tags) : [],
+      translations: row.translations ? JSON.parse(row.translations) : undefined,
+      translation_language: row.translation_language || undefined,
+      translation_updated_at: row.translation_updated_at || undefined
     }));
+  }
+
+  async getArticleById(id: number): Promise<Article | null> {
+    if (!this.db) await this.init();
+    
+    const result = await this.db!.getFirstAsync('SELECT * FROM articles WHERE id = ?', [id]);
+    if (!result) return null;
+    
+    return {
+      id: (result as any).id,
+      title: (result as any).title,
+      content: (result as any).content,
+      created_at: (result as any).created_at,
+      updated_at: (result as any).updated_at,
+      tags: (result as any).tags ? JSON.parse((result as any).tags) : [],
+      translations: (result as any).translations ? JSON.parse((result as any).translations) : undefined,
+      translation_language: (result as any).translation_language || undefined,
+      translation_updated_at: (result as any).translation_updated_at || undefined
+    };
   }
 
   async insertArticle(title: string, content: string, tags: string[] = []): Promise<number> {
@@ -73,6 +101,28 @@ class Database {
     await this.db!.runAsync(
       'UPDATE articles SET title = ?, content = ?, tags = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
       [title, content, JSON.stringify(tags), id]
+    );
+  }
+
+  async updateArticleTranslations(
+    id: number, 
+    translations: { [key: string]: string }, 
+    language: string
+  ): Promise<void> {
+    if (!this.db) await this.init();
+    
+    await this.db!.runAsync(
+      'UPDATE articles SET translations = ?, translation_language = ?, translation_updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [JSON.stringify(translations), language, id]
+    );
+  }
+
+  async clearTranslations(id: number): Promise<void> {
+    if (!this.db) await this.init();
+    
+    await this.db!.runAsync(
+      'UPDATE articles SET translations = NULL, translation_language = NULL, translation_updated_at = NULL WHERE id = ?',
+      [id]
     );
   }
 }

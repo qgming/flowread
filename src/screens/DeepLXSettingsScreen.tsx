@@ -81,9 +81,9 @@ export default function DeepLXSettingsScreen() {
       <View style={styles.content}>
         {/* 介绍卡片 */}
         <View style={styles.introCard}>
-          <Text style={styles.providerName}>DeepLX 翻译服务</Text>
+          <Text style={styles.providerName}>DeepL翻译服务</Text>
           <Text style={styles.providerDescription}>
-            基于DeepL的免费翻译服务，支持多种语言的高质量翻译。无需付费即可使用，API密钥为可选项。
+            基于DeepL的翻译服务，支持多种语言的高质量翻译。当前使用DeepLX无需付费即可使用，API密钥为可选项。
           </Text>
         </View>
 

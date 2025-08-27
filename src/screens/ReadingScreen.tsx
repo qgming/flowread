@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,34 +8,73 @@ import {
   Modal,
   TextInput,
   Alert,
-  Platform,
+  ScrollView,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
 import ArticleCard from '../components/ArticleCard';
+import BottomActionSheet from '../components/BottomActionSheet';
 import Database, { Article } from '../database/database';
 
 export default function ReadingScreen({ navigation }: any) {
   const [articles, setArticles] = useState<Article[]>([]);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [importModalVisible, setImportModalVisible] = useState(false);
+  const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [pasteModalVisible, setPasteModalVisible] = useState(false);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState('');
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    loadArticles();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadArticles();
+    }, [])
+  );
 
   const loadArticles = async () => {
     try {
       const allArticles = await Database.getAllArticles();
       setArticles(allArticles);
+      
+      // 清理无效的选中标签
+      const currentTags = new Set<string>();
+      allArticles.forEach(article => {
+        article.tags.forEach(tag => currentTags.add(tag));
+      });
+      
+      setSelectedTags(prevSelectedTags => {
+        const validSelectedTags = new Set<string>();
+        prevSelectedTags.forEach(tag => {
+          if (currentTags.has(tag)) {
+            validSelectedTags.add(tag);
+          }
+        });
+        return validSelectedTags;
+      });
     } catch (error) {
       console.error('Error loading articles:', error);
     }
   };
+
+  // 提取所有唯一标签
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    articles.forEach(article => {
+      article.tags.forEach(tag => tagSet.add(tag));
+    });
+    return Array.from(tagSet).sort();
+  }, [articles]);
+
+  // 筛选文章
+  const filteredArticles = useMemo(() => {
+    if (selectedTags.size === 0) {
+      return articles;
+    }
+    return articles.filter(article => 
+      Array.from(selectedTags).every(tag => article.tags.includes(tag))
+    );
+  }, [articles, selectedTags]);
 
   const handleImportFile = async () => {
     try {
@@ -108,11 +147,25 @@ export default function ReadingScreen({ navigation }: any) {
     }
   };
 
+  const toggleTag = (tag: string) => {
+    const newSelectedTags = new Set(selectedTags);
+    if (newSelectedTags.has(tag)) {
+      newSelectedTags.delete(tag);
+    } else {
+      newSelectedTags.add(tag);
+    }
+    setSelectedTags(newSelectedTags);
+  };
+
+  const clearAllTags = () => {
+    setSelectedTags(new Set());
+  };
+
   const renderArticle = ({ item }: { item: Article }) => (
     <ArticleCard
       article={item}
       onPress={() => {
-        navigation.navigate('ArticleReader', { article: item });
+        navigation.navigate('ArticleReader', { articleId: item.id });
       }}
       onDelete={handleDeleteArticle}
     />
@@ -125,60 +178,86 @@ export default function ReadingScreen({ navigation }: any) {
     </View>
   );
 
+  const actionItems = [
+    {
+      title: '导入TXT文件',
+      onPress: handleImportFile,
+    },
+    {
+      title: '粘贴文本',
+      onPress: () => setPasteModalVisible(true),
+    },
+  ];
+
   return (
     <View style={styles.container}>
+      {/* 标签筛选区域 */}
+      {allTags.length > 0 && (
+        <View style={styles.tagsContainer}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={styles.tagsScroll}
+          >
+            <TouchableOpacity
+              style={[
+                styles.tag,
+                selectedTags.size === 0 && styles.tagSelected
+              ]}
+              onPress={clearAllTags}
+            >
+              <Text style={[
+                styles.tagText,
+                selectedTags.size === 0 && styles.tagTextSelected
+              ]}>
+                全部
+              </Text>
+            </TouchableOpacity>
+            
+            {allTags.map(tag => (
+              <TouchableOpacity
+                key={tag}
+                style={[
+                  styles.tag,
+                  selectedTags.has(tag) && styles.tagSelected
+                ]}
+                onPress={() => toggleTag(tag)}
+              >
+                <Text style={[
+                  styles.tagText,
+                  selectedTags.has(tag) && styles.tagTextSelected
+                ]}>
+                  {tag}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
       <FlatList
-        data={articles}
+        data={filteredArticles}
         renderItem={renderArticle}
         keyExtractor={(item) => item.id.toString()}
         ListEmptyComponent={renderEmpty}
-        contentContainerStyle={articles.length === 0 ? styles.emptyList : null}
+        contentContainerStyle={filteredArticles.length === 0 ? styles.emptyList : null}
       />
 
       {/* 悬浮按钮 */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => setModalVisible(true)}
+        onPress={() => setBottomSheetVisible(true)}
       >
         <Ionicons name="add" size={28} color="#fff" />
       </TouchableOpacity>
 
-      {/* 选择菜单 */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          onPress={() => setModalVisible(false)}
-        >
-          <View style={styles.modalContent}>
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => {
-                setModalVisible(false);
-                handleImportFile();
-              }}
-            >
-              <Ionicons name="document-text-outline" size={24} color="#333" />
-              <Text style={styles.modalButtonText}>导入TXT文件</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => {
-                setModalVisible(false);
-                setPasteModalVisible(true);
-              }}
-            >
-              <Ionicons name="clipboard-outline" size={24} color="#333" />
-              <Text style={styles.modalButtonText}>粘贴文本</Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+      {/* 底部操作表 */}
+      <BottomActionSheet
+        visible={bottomSheetVisible}
+        onClose={() => setBottomSheetVisible(false)}
+        actions={actionItems}
+        title="添加文章"
+      />
 
       {/* 粘贴文本模态框 */}
       <Modal
@@ -216,14 +295,14 @@ export default function ReadingScreen({ navigation }: any) {
             
             <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
+                style={styles.cancelButton}
                 onPress={() => setPasteModalVisible(false)}
               >
                 <Text style={styles.cancelButtonText}>取消</Text>
               </TouchableOpacity>
               
               <TouchableOpacity
-                style={[styles.modalButton, styles.saveButton]}
+                style={styles.saveButton}
                 onPress={handlePasteImport}
               >
                 <Text style={styles.saveButtonText}>保存</Text>
@@ -240,6 +319,34 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  tagsContainer: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  tagsScroll: {
+    flexDirection: 'row',
+  },
+  tag: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 8,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  tagSelected: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  tagText: {
+    fontSize: 14,
+    color: '#666',
+  },
+  tagTextSelected: {
+    color: '#fff',
+    fontWeight: '600',
   },
   emptyContainer: {
     flex: 1,
@@ -273,29 +380,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    minWidth: 200,
-  },
-  modalButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  modalButtonText: {
-    fontSize: 16,
-    marginLeft: 12,
-    color: '#333',
   },
   modalContainer: {
     flex: 1,
@@ -337,22 +421,24 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
     backgroundColor: '#f0f0f0',
+    borderRadius: 8,
+    paddingVertical: 12,
   },
   saveButton: {
     flex: 1,
     marginLeft: 8,
     backgroundColor: '#007AFF',
+    borderRadius: 8,
+    paddingVertical: 12,
   },
   cancelButtonText: {
     color: '#666',
     fontSize: 16,
     textAlign: 'center',
-    paddingVertical: 12,
   },
   saveButtonText: {
     color: '#fff',
     fontSize: 16,
     textAlign: 'center',
-    paddingVertical: 12,
   },
 });

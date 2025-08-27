@@ -53,12 +53,23 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+                {/* 翻译服务设置卡片 */}
+        <TouchableOpacity style={styles.card} onPress={navigateToTranslationSettings}>
+          <View style={styles.cardContent}>
+            <View style={styles.cardLeft}>
+              <Text style={styles.cardTitle}>翻译偏好</Text>
+              <Text style={styles.cardDescription}>配置翻译引擎、目标语言和提示词</Text>
+            </View>
+            <Text style={styles.arrow}>›</Text>
+          </View>
+        </TouchableOpacity>
+
         {/* AI设置卡片 */}
         <TouchableOpacity style={styles.card} onPress={navigateToAISettings}>
           <View style={styles.cardContent}>
             <View style={styles.cardLeft}>
               <Text style={styles.cardTitle}>AI设置</Text>
-              <Text style={styles.cardDescription}>配置AI相关功能</Text>
+              <Text style={styles.cardDescription}>自定义大模型地址与密钥</Text>
             </View>
             <Text style={styles.arrow}>›</Text>
           </View>
@@ -68,23 +79,14 @@ export default function SettingsScreen() {
         <TouchableOpacity style={styles.card} onPress={navigateToDeepLXSettings}>
           <View style={styles.cardContent}>
             <View style={styles.cardLeft}>
-              <Text style={styles.cardTitle}>DeepLX设置</Text>
-              <Text style={styles.cardDescription}>配置非官方DeepL翻译服务</Text>
+              <Text style={styles.cardTitle}>DeepL设置</Text>
+              <Text style={styles.cardDescription}>配置DeepL、DeepLX翻译接口</Text>
             </View>
             <Text style={styles.arrow}>›</Text>
           </View>
         </TouchableOpacity>
 
-        {/* 翻译服务设置卡片 */}
-        <TouchableOpacity style={styles.card} onPress={navigateToTranslationSettings}>
-          <View style={styles.cardContent}>
-            <View style={styles.cardLeft}>
-              <Text style={styles.cardTitle}>翻译服务设置</Text>
-              <Text style={styles.cardDescription}>配置翻译引擎、目标语言和提示词</Text>
-            </View>
-            <Text style={styles.arrow}>›</Text>
-          </View>
-        </TouchableOpacity>
+
       </View>
     </View>
   );
