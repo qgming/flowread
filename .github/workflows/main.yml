@@ -22,7 +22,7 @@ jobs:
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
-          token: cKokj_-Hmmvg41NVhoTw-MYliiQIK-DgVW0jvgkT
+          token: ${{ secrets.cKokj_-Hmmvg41NVhoTw-MYliiQIK-DgVW0jvgkT }}
       - name: Install dependencies
         run: npm install
       - name: Install expo CLI
