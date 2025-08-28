@@ -2,6 +2,14 @@ import * as SQLite from 'expo-sqlite';
 
 const DATABASE_NAME = 'flowread.db';
 
+export interface FavoriteWord {
+  id: number;
+  word: string;
+  translation: string;
+  definition: string;
+  created_at: string;
+}
+
 export interface Article {
   id: number;
   title: string;
@@ -35,6 +43,17 @@ class Database {
         );
       `);
       
+      await this.db.execAsync(`
+        CREATE TABLE IF NOT EXISTS favorite_words (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          word TEXT NOT NULL,
+          translation TEXT NOT NULL,
+          definition TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(word) ON CONFLICT REPLACE
+        );
+      `);
+      
       console.log('Database initialized successfully');
     } catch (error) {
       console.error('Error initializing database:', error);
@@ -42,6 +61,7 @@ class Database {
     }
   }
 
+  // Article methods
   async getAllArticles(): Promise<Article[]> {
     if (!this.db) await this.init();
     
@@ -124,6 +144,48 @@ class Database {
       'UPDATE articles SET translations = NULL, translation_language = NULL, translation_updated_at = NULL WHERE id = ?',
       [id]
     );
+  }
+
+  // Favorite words methods
+  async addFavoriteWord(word: string, translation: string, definition: string): Promise<void> {
+    if (!this.db) await this.init();
+    
+    await this.db!.runAsync(
+      'INSERT INTO favorite_words (word, translation, definition) VALUES (?, ?, ?)',
+      [word, translation, definition]
+    );
+  }
+
+  async removeFavoriteWord(word: string): Promise<void> {
+    if (!this.db) await this.init();
+    
+    await this.db!.runAsync(
+      'DELETE FROM favorite_words WHERE word = ?',
+      [word]
+    );
+  }
+
+  async getFavoriteWords(): Promise<FavoriteWord[]> {
+    if (!this.db) await this.init();
+    
+    const result = await this.db!.getAllAsync('SELECT * FROM favorite_words ORDER BY created_at DESC');
+    return (result as any[]).map(row => ({
+      id: row.id,
+      word: row.word,
+      translation: row.translation,
+      definition: row.definition,
+      created_at: row.created_at
+    }));
+  }
+
+  async isWordFavorite(word: string): Promise<boolean> {
+    if (!this.db) await this.init();
+    
+    const result = await this.db!.getFirstAsync(
+      'SELECT 1 FROM favorite_words WHERE word = ?',
+      [word]
+    );
+    return !!result;
   }
 }
 

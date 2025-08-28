@@ -73,7 +73,7 @@ export default function SettingsScreen() {
           <View style={styles.cardContent}>
             <View style={styles.cardLeft}>
               <Text style={styles.cardTitle}>解析服务</Text>
-              <Text style={styles.cardDescription}>配置单词和文章解析的AI模型与提示词</Text>
+              <Text style={styles.cardDescription}>配置单词和文章解析的AI模型</Text>
             </View>
             <Text style={styles.arrow}>›</Text>
           </View>

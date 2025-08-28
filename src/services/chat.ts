@@ -1,4 +1,5 @@
 import { AIProviderConfig } from '../utils/settingsStorage';
+import EventSource from 'react-native-sse';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -10,6 +11,7 @@ export interface ChatCompletionOptions {
   temperature?: number;
   maxTokens?: number;
   stream?: boolean;
+  signal?: AbortSignal;
 }
 
 export interface ChatResponse {
@@ -37,7 +39,7 @@ export class ChatService {
    * 非流式聊天请求
    */
   async chat(options: ChatCompletionOptions): Promise<ChatResponse> {
-    const { messages, temperature = 1.0, maxTokens = 2000 } = options;
+    const { messages, temperature = 1.0, maxTokens = 2000, signal } = options;
 
     try {
       const requestBody = {
@@ -58,10 +60,20 @@ export class ChatService {
           'Authorization': `Bearer ${this.config.apiKey}`,
         },
         body: JSON.stringify(requestBody),
+        signal,
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error?.message) {
+            errorMessage = errorData.error.message;
+          }
+        } catch (e) {
+          // 如果无法解析错误响应，使用默认消息
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -80,18 +92,26 @@ export class ChatService {
         } : undefined,
       };
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('请求已取消');
+      }
       console.error('Chat API error:', error);
       throw this.handleError(error);
     }
   }
 
   /**
-   * 流式聊天请求
+   * 流式聊天请求 - 使用 react-native-sse 实现
    */
   async *chatStream(options: Omit<ChatCompletionOptions, 'stream'>): AsyncGenerator<StreamChunk, void, unknown> {
-    const { messages, temperature = 1.0, maxTokens = 2000 } = options;
+    const { messages, temperature = 1.0, maxTokens = 2000, signal } = options;
 
     try {
+      // 检查配置
+      if (!this.config.url || !this.config.apiKey) {
+        throw new Error('AI服务配置不完整，请检查API地址和密钥');
+      }
+
       const requestBody = {
         model: this.config.model,
         messages: messages.map(msg => ({
@@ -103,73 +123,180 @@ export class ChatService {
         stream: true,
       };
 
-      const response = await fetch(`${this.config.url}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.apiKey}`,
-          'Accept': 'text/event-stream',
-        },
-        body: JSON.stringify(requestBody),
+      // 构建完整的URL和headers
+      const url = `${this.config.url}/chat/completions`;
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.config.apiKey}`,
+        'Accept': 'text/event-stream',
+      };
+
+      return yield* this.createEventSourceStream(url, requestBody, headers, signal);
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('请求已取消');
+      }
+      console.error('Chat stream error:', error);
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * 使用 EventSource 创建流式连接
+   */
+  private async *createEventSourceStream(
+    url: string,
+    requestBody: any,
+    headers: Record<string, string>,
+    signal?: AbortSignal
+  ): AsyncGenerator<StreamChunk, void, unknown> {
+    // 如果信号已经中止，立即返回
+    if (signal?.aborted) {
+      return;
+    }
+
+    const eventSource = new EventSource(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(requestBody),
+      pollingInterval: 0,
+    });
+
+    let isAborted = false;
+    let content = '';
+
+    // 监听取消信号
+    if (signal) {
+      const abortHandler = () => {
+        isAborted = true;
+        eventSource.close();
+      };
+      
+      signal.addEventListener('abort', abortHandler);
+      
+      // 如果信号已经被中止
+      if (signal.aborted) {
+        eventSource.close();
+        return;
+      }
+    }
+
+    try {
+      // 等待连接建立
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('连接超时'));
+        }, 10000);
+
+        const handleOpen = () => {
+          clearTimeout(timeout);
+          eventSource.removeEventListener('open', handleOpen);
+          eventSource.removeEventListener('error', handleError);
+          resolve();
+        };
+
+        const handleError = (event: any) => {
+          clearTimeout(timeout);
+          eventSource.removeEventListener('open', handleOpen);
+          eventSource.removeEventListener('error', handleError);
+          const errorMessage = event?.message || '连接失败';
+          reject(new Error('连接失败: ' + errorMessage));
+        };
+
+        eventSource.addEventListener('open', handleOpen);
+        eventSource.addEventListener('error', handleError);
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      if (!response.body) {
-        // 处理空响应体的情况，可能是某些API的特殊情况
-        console.warn('Response body is null, attempting to handle gracefully');
-        yield { content: '', isComplete: true };
+      // 检查是否已中止
+      if (isAborted || signal?.aborted) {
         return;
       }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
+      // 使用队列处理消息
+      const messageQueue: any[] = [];
+      let resolveMessage: ((value: any) => void) | null = null;
+
+      const messageHandler = (event: any) => {
+        if (isAborted || signal?.aborted) return;
+        
+        if (resolveMessage) {
+          resolveMessage(event);
+          resolveMessage = null;
+        } else {
+          messageQueue.push(event);
+        }
+      };
+
+      const errorHandler = (error: any) => {
+        if (isAborted || signal?.aborted) return;
+        
+        if (resolveMessage) {
+          resolveMessage(null);
+          resolveMessage = null;
+        } else {
+          messageQueue.push(null);
+        }
+      };
+
+      eventSource.addEventListener('message', messageHandler);
+      eventSource.addEventListener('error', errorHandler);
 
       try {
-        while (true) {
-          const { done, value } = await reader.read();
+        while (!isAborted && !signal?.aborted) {
+          let event: any;
           
-          if (done) {
-            yield { content: '', isComplete: true };
+          if (messageQueue.length > 0) {
+            event = messageQueue.shift();
+          } else {
+            event = await new Promise<any>((resolve) => {
+              resolveMessage = resolve;
+            });
+          }
+
+          if (isAborted || signal?.aborted) {
             break;
           }
 
-          buffer += decoder.decode(value, { stream: true });
-          
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+          if (!event) {
+            // 连接已关闭或出错
+            break;
+          }
 
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              const data = line.slice(6);
-              
-              if (data === '[DONE]') {
-                yield { content: '', isComplete: true };
-                return;
-              }
+          const data = event.data;
 
-              try {
-                const parsed = JSON.parse(data);
-                const content = parsed.choices?.[0]?.delta?.content;
-                if (content) {
-                  yield { content, isComplete: false };
-                }
-              } catch (parseError) {
-                console.warn('Failed to parse SSE data:', parseError);
-                // 继续处理下一条数据，不中断流
-              }
+          if (data === '[DONE]') {
+            yield { content: '', isComplete: true };
+            return;
+          }
+
+          try {
+            const parsed = JSON.parse(data);
+            const choice = parsed.choices?.[0];
+            
+            if (choice?.delta?.content) {
+              content += choice.delta.content;
+              yield { content: choice.delta.content, isComplete: false };
             }
+            
+            if (parsed.error) {
+              throw new Error(`API错误: ${parsed.error.message || JSON.stringify(parsed.error)}`);
+            }
+          } catch (parseError) {
+            // 忽略解析错误，继续处理下一条
+            console.warn('Failed to parse SSE data:', parseError);
           }
         }
       } finally {
-        reader.releaseLock();
+        eventSource.removeEventListener('message', messageHandler);
+        eventSource.removeEventListener('error', errorHandler);
       }
-    } catch (error) {
-      console.error('Chat stream error:', error);
-      throw this.handleError(error);
+
+      // 确保发送完成信号
+      if (!isAborted && !signal?.aborted) {
+        yield { content: '', isComplete: true };
+      }
+    } finally {
+      eventSource.close();
     }
   }
 
@@ -213,8 +340,14 @@ export class ChatService {
       if (message.includes('500') || message.includes('internal server error')) {
         return new Error('服务器内部错误，请稍后再试');
       }
-      if (message.includes('network') || message.includes('fetch') || message.includes('failed')) {
+      if (message.includes('network') || message.includes('fetch') || message.includes('failed') || message.includes('sse')) {
         return new Error('网络连接失败，请检查网络设置');
+      }
+      if (message.includes('timeout')) {
+        return new Error('请求超时，请检查网络连接或稍后重试');
+      }
+      if (message.includes('abort')) {
+        return new Error('请求已取消');
       }
       
       return error;

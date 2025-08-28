@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   Alert,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -87,30 +86,6 @@ export default function AnalysisSettingsScreen() {
               </Picker>
             </View>
           </View>
-
-          <View style={styles.subSection}>
-            <Text style={styles.subSectionTitle}>解析提示词</Text>
-            <Text style={styles.sectionDescription}>
-              使用 {'{word}'} 作为单词占位符，{'{context}'} 作为上下文占位符
-            </Text>
-            <TextInput
-              style={styles.textInput}
-              multiline
-              numberOfLines={6}
-              value={tempSettings.analysis.wordAnalysisPrompt}
-              onChangeText={(text: string) =>
-                setTempSettings({
-                  ...tempSettings,
-                  analysis: {
-                    ...tempSettings.analysis,
-                    wordAnalysisPrompt: text,
-                  },
-                })
-              }
-              placeholder="请输入单词解析提示词..."
-              textAlignVertical="top"
-            />
-          </View>
         </View>
 
         {/* 文章解析设置 */}
@@ -142,30 +117,6 @@ export default function AnalysisSettingsScreen() {
                 ))}
               </Picker>
             </View>
-          </View>
-
-          <View style={styles.subSection}>
-            <Text style={styles.subSectionTitle}>解析提示词</Text>
-            <Text style={styles.sectionDescription}>
-              使用 {'{title}'} 作为标题占位符，{'{content}'} 作为内容占位符
-            </Text>
-            <TextInput
-              style={styles.textInput}
-              multiline
-              numberOfLines={6}
-              value={tempSettings.analysis.articleAnalysisPrompt}
-              onChangeText={(text: string) =>
-                setTempSettings({
-                  ...tempSettings,
-                  analysis: {
-                    ...tempSettings.analysis,
-                    articleAnalysisPrompt: text,
-                  },
-                })
-              }
-              placeholder="请输入文章解析提示词..."
-              textAlignVertical="top"
-            />
           </View>
         </View>
 
@@ -215,11 +166,6 @@ const styles = StyleSheet.create({
     color: '#000',
     marginBottom: 8,
   },
-  sectionDescription: {
-    fontSize: 14,
-    color: '#8E8E93',
-    marginBottom: 12,
-  },
   pickerContainer: {
     borderWidth: 1,
     borderColor: '#E5E5EA',
@@ -228,15 +174,6 @@ const styles = StyleSheet.create({
   },
   picker: {
     height: 52,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: '#000',
-    minHeight: 120,
   },
   saveButton: {
     backgroundColor: '#007AFF',

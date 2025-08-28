@@ -45,7 +45,7 @@ export default function BottomTabNavigator() {
 
           if (route.name === '阅读') {
             iconName = focused ? 'book' : 'book-outline';
-          } else if (route.name === '喜欢') {
+          } else if (route.name === '单词') {
             iconName = focused ? 'heart' : 'heart-outline';
           } else if (route.name === '设置') {
             iconName = focused ? 'settings' : 'settings-outline';
@@ -65,10 +65,10 @@ export default function BottomTabNavigator() {
         }}
       />
       <Tab.Screen 
-        name="喜欢" 
+        name="单词" 
         component={FavoritesScreen}
         options={{
-          title: '喜欢',
+          title: '单词',
         }}
       />
       <Tab.Screen 
