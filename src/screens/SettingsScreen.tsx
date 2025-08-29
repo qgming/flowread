@@ -1,26 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
-import { loadSettings, updateSetting } from '../utils/settingsStorage';
+import { useTheme } from '../theme/ThemeContext';
+import { ThemeMode } from '../utils/settingsStorage';
 
-type SettingsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'AISettings' | 'DeepLXSettings' | 'TranslationSettings' | 'AnalysisSettings'>;
+type SettingsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'AISettings' | 'DeepLXSettings' | 'TranslationSettings' | 'AnalysisSettings' | 'About'>
 
 export default function SettingsScreen() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { theme, themeMode, setThemeMode } = useTheme();
   const navigation = useNavigation<SettingsScreenNavigationProp>();
+  const [showThemeModal, setShowThemeModal] = useState(false);
 
-  useEffect(() => {
-    loadSettings().then(settings => {
-      setIsDarkMode(settings.isDarkMode);
-    });
-  }, []);
+  const themeOptions = [
+    { label: '跟随系统', value: 'system' },
+    { label: '浅色模式', value: 'light' },
+    { label: '深色模式', value: 'dark' },
+  ];
 
-  const toggleDarkMode = async (value: boolean) => {
-    setIsDarkMode(value);
-    await updateSetting('isDarkMode', value);
+  const handleThemeChange = (value: string) => {
+    setThemeMode(value as ThemeMode);
   };
 
   const navigateToAISettings = () => {
@@ -39,30 +40,48 @@ export default function SettingsScreen() {
     navigation.navigate('AnalysisSettings' as any);
   };
 
+  const navigateToAbout = () => {
+    navigation.navigate('About');
+  };
+
+  const getThemeLabel = (mode: ThemeMode) => {
+    switch (mode) {
+      case 'system':
+        return '跟随系统';
+      case 'light':
+        return '浅色模式';
+      case 'dark':
+        return '深色模式';
+      default:
+        return '跟随系统';
+    }
+  };
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         {/* 基础设置 */}
-        <View style={styles.section}>
-            <View style={styles.settingItem}>
+        <View style={[styles.section, { borderBottomColor: theme.colors.divider }]}>
+            <TouchableOpacity 
+              style={styles.settingItem} 
+              onPress={() => setShowThemeModal(true)}
+            >
               <View style={styles.settingLeft}>
                 <View style={styles.iconContainer}>
                   <Ionicons name="moon-outline" size={22} color="#007AFF" />
                 </View>
-                <Text style={styles.settingTitle}>深色模式</Text>
+                <Text style={[styles.settingTitle, { color: theme.colors.text }]}>主题模式</Text>
               </View>
               <View style={styles.settingRight}>
-                <Switch
-                  value={isDarkMode}
-                  onValueChange={toggleDarkMode}
-                  trackColor={{ false: '#E5E5EA', true: '#007AFF' }}
-                  thumbColor={isDarkMode ? '#fff' : '#fff'}
-                />
+                <Text style={[styles.settingValue, { color: theme.colors.textSecondary }]}>
+                  {getThemeLabel(themeMode)}
+                </Text>
+                <Ionicons name="chevron-forward" size={22} color="#c7c7cc" />
               </View>
-            </View>
+            </TouchableOpacity>
         </View>
 
         {/* 翻译与解析 */}
-        <View style={styles.section}>
+       <View style={[styles.section, { borderBottomColor: theme.colors.divider }]}>
             <TouchableOpacity 
               style={styles.settingItem} 
               onPress={navigateToTranslationSettings}
@@ -71,7 +90,7 @@ export default function SettingsScreen() {
                 <View style={styles.iconContainer}>
                   <Ionicons name="language-outline" size={22} color="#007AFF" />
                 </View>
-                <Text style={styles.settingTitle}>翻译偏好</Text>
+                <Text style={[styles.settingTitle, { color: theme.colors.text }]}>翻译偏好</Text>
               </View>
               <View style={styles.settingRight}>
                 <Ionicons name="chevron-forward" size={22} color="#c7c7cc" />
@@ -86,7 +105,7 @@ export default function SettingsScreen() {
                 <View style={styles.iconContainer}>
                   <Ionicons name="search-outline" size={22} color="#007AFF" />
                 </View>
-                <Text style={styles.settingTitle}>解析服务</Text>
+                <Text style={[styles.settingTitle, { color: theme.colors.text }]}>解析服务</Text>
               </View>
               <View style={styles.settingRight}>
                 <Ionicons name="chevron-forward" size={22} color="#c7c7cc" />
@@ -95,7 +114,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* AI与翻译服务 */}
-        <View style={styles.section}>
+    <View style={[styles.section, { borderBottomColor: theme.colors.divider }]}>
             <TouchableOpacity 
               style={styles.settingItem} 
               onPress={navigateToAISettings}
@@ -104,7 +123,7 @@ export default function SettingsScreen() {
                 <View style={styles.iconContainer}>
                   <Ionicons name="hardware-chip-outline" size={22} color="#007AFF" />
                 </View>
-                <Text style={styles.settingTitle}>AI设置</Text>
+                <Text style={[styles.settingTitle, { color: theme.colors.text }]}>AI设置</Text>
               </View>
               <View style={styles.settingRight}>
                 <Ionicons name="chevron-forward" size={22} color="#c7c7cc" />
@@ -119,13 +138,68 @@ export default function SettingsScreen() {
                 <View style={styles.iconContainer}>
                   <Ionicons name="settings-outline" size={22} color="#007AFF" />
                 </View>
-                <Text style={styles.settingTitle}>DeepL设置</Text>
+                <Text style={[styles.settingTitle, { color: theme.colors.text }]}>DeepL设置</Text>
               </View>
               <View style={styles.settingRight}>
                 <Ionicons name="chevron-forward" size={22} color="#c7c7cc" />
               </View>
             </TouchableOpacity>
         </View>
+
+        {/* 关于应用 */}
+        <View style={[styles.section, { borderBottomColor: theme.colors.divider }]}>
+            <TouchableOpacity 
+              style={styles.settingItem} 
+              onPress={navigateToAbout}
+            >
+              <View style={styles.settingLeft}>
+                <View style={styles.iconContainer}>
+                  <Ionicons name="information-circle-outline" size={22} color="#007AFF" />
+                </View>
+                <Text style={[styles.settingTitle, { color: theme.colors.text }]}>关于我们</Text>
+              </View>
+              <View style={styles.settingRight}>
+                <Ionicons name="chevron-forward" size={22} color="#c7c7cc" />
+              </View>
+            </TouchableOpacity>
+        </View>
+
+        {showThemeModal && (
+          <View style={styles.modalContainer}>
+            <View style={[styles.modalContent, { backgroundColor: theme.colors.surface }]}>
+              <Text style={[styles.modalTitle, { color: theme.colors.text }]}>选择主题模式</Text>
+              {themeOptions.map((option) => (
+                <TouchableOpacity
+                  key={option.value}
+                  style={[
+                    styles.modalOption,
+                    { borderBottomColor: theme.colors.divider },
+                    themeMode === option.value && { backgroundColor: theme.colors.primaryContainer }
+                  ]}
+                  onPress={() => {
+                    handleThemeChange(option.value);
+                    setShowThemeModal(false);
+                  }}
+                >
+                  <Text style={[styles.modalOptionText, { color: theme.colors.text }]}>
+                    {option.label}
+                  </Text>
+                  {themeMode === option.value && (
+                    <Ionicons name="checkmark" size={20} color={theme.colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={[styles.modalCancel, { backgroundColor: theme.colors.surfaceVariant }]}
+                onPress={() => setShowThemeModal(false)}
+              >
+                <Text style={[styles.modalCancelText, { color: theme.colors.primary }]}>
+                  取消
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
     </View>
   );
 }
@@ -133,11 +207,9 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   section: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#ddd',
     paddingVertical: 8,
   },
   settingItem: {
@@ -163,10 +235,57 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 17,
     fontWeight: '400',
-    color: '#000',
   },
   settingRight: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  settingValue: {
+    fontSize: 16,
+    marginRight: 8,
+  },
+  modalContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    marginHorizontal: 20,
+    borderRadius: 12,
+    paddingVertical: 10,
+    minWidth: 280,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    paddingVertical: 16,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  modalOptionText: {
+    fontSize: 17,
+  },
+  modalCancel: {
+    marginTop: 8,
+    marginHorizontal: 8,
+    borderRadius: 8,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 17,
+    fontWeight: '600',
   },
 });

@@ -20,6 +20,7 @@ import WordDefinitionSheet from '../components/WordDefinitionSheet';
 import ArticleHeader from '../components/ArticleHeader';
 import ArticleParagraph from '../components/ArticleParagraph';
 import TagModal from '../components/TagModal';
+import { useTheme } from '../theme/ThemeContext';
 
 type RootStackParamList = {
   Main: undefined;
@@ -37,6 +38,7 @@ interface ParagraphSegment {
 }
 
 export default function ArticleReaderScreen({ route, navigation }: Props) {
+  const { theme } = useTheme();
   const { articleId } = route.params;
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,7 +53,7 @@ export default function ArticleReaderScreen({ route, navigation }: Props) {
   const [showCopySheet, setShowCopySheet] = useState(false);
   const [showTranslation, setShowTranslation] = useState(true);
   const [showWordDefinition, setShowWordDefinition] = useState(false);
- const [selectedWord, setSelectedWord] = useState('');
+  const [selectedWord, setSelectedWord] = useState('');
   const [selectedContext, setSelectedContext] = useState('');
   const [favoriteWords, setFavoriteWords] = useState<Set<string>>(new Set());
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -68,7 +70,7 @@ export default function ArticleReaderScreen({ route, navigation }: Props) {
             <Ionicons 
               name={showTranslation ? "eye-outline" : "eye-off-outline"} 
               size={22} 
-              color="#007AFF" 
+              color={theme.colors.primary} 
             />
           </TouchableOpacity>
           
@@ -77,7 +79,7 @@ export default function ArticleReaderScreen({ route, navigation }: Props) {
             onPress={() => setShowTagModal(true)}
             disabled={!article}
           >
-            <Ionicons name="pricetag-outline" size={22} color="#007AFF" />
+            <Ionicons name="pricetag-outline" size={22} color={theme.colors.primary} />
           </TouchableOpacity>
           
           <TouchableOpacity
@@ -85,7 +87,7 @@ export default function ArticleReaderScreen({ route, navigation }: Props) {
             onPress={() => setShowCopySheet(true)}
             disabled={paragraphs.length === 0}
           >
-            <Ionicons name="copy-outline" size={22} color="#007AFF" />
+            <Ionicons name="copy-outline" size={22} color={theme.colors.primary} />
           </TouchableOpacity>
           
           <TouchableOpacity
@@ -94,15 +96,15 @@ export default function ArticleReaderScreen({ route, navigation }: Props) {
             disabled={isTranslating || paragraphs.length === 0}
           >
             {isTranslating ? (
-              <ActivityIndicator size="small" color="#007AFF" />
+              <ActivityIndicator size="small" color={theme.colors.primary} />
             ) : (
-              <Ionicons name="language-outline" size={24} color="#007AFF" />
+              <Ionicons name="language-outline" size={24} color={theme.colors.primary} />
             )}
           </TouchableOpacity>
         </View>
       ),
     });
-  }, [navigation, isTranslating, paragraphs.length, article, showTranslation]);
+  }, [navigation, isTranslating, paragraphs.length, article, showTranslation, theme.colors.primary]);
 
   // 加载文章和翻译
   const loadArticle = useCallback(async () => {
@@ -401,37 +403,37 @@ export default function ArticleReaderScreen({ route, navigation }: Props) {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>加载中...</Text>
+      <View style={[styles.centerContainer, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>加载中...</Text>
       </View>
     );
   }
 
   if (!article) return null;
 
- const allTranslated = paragraphs.every(p => p.translated);
+  const allTranslated = paragraphs.every(p => p.translated);
   const translationStatus = allTranslated ? '已翻译' : 
     paragraphs.some(p => p.translated) ? '部分翻译' : '未翻译';
   
   // 计算文章单词数量
-const wordCount = article.content
-  .replace(/[.,!?;:'"()\[\]{}\-—–，。！？；：'""（）【】《》]/g, ' ')
-  .split(/\s+/)
-  .filter(word => word.trim().length > 0)
-  .reduce((count, word) => {
-    // 处理中英文混合
-    const chineseChars = word.match(/[\u4e00-\u9fa5]/g) || [];
-    const englishWords = word.match(/[a-zA-Z]+/g) || [];
-    const numbers = word.match(/\d+/g) || [];
-    
-    return count + chineseChars.length + englishWords.length + numbers.length;
-  }, 0);
+  const wordCount = article.content
+    .replace(/[.,!?;:'"()\[\]{}\-—–，。！？；：'""（）【】《》]/g, ' ')
+    .split(/\s+/)
+    .filter(word => word.trim().length > 0)
+    .reduce((count, word) => {
+      // 处理中英文混合
+      const chineseChars = word.match(/[\u4e00-\u9fa5]/g) || [];
+      const englishWords = word.match(/[a-zA-Z]+/g) || [];
+      const numbers = word.match(/\d+/g) || [];
+      
+      return count + chineseChars.length + englishWords.length + numbers.length;
+    }, 0);
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.contentContainer}>
-         <ArticleHeader
+        <ArticleHeader
           title={article.title}
           createdAt={article.created_at}
           translationStatus={translationStatus}
@@ -478,7 +480,7 @@ const wordCount = article.content
         title="复制文章"
       />
 
-    <WordDefinitionSheet
+      <WordDefinitionSheet
         visible={showWordDefinition}
         onClose={() => setShowWordDefinition(false)}
         word={selectedWord}
@@ -492,13 +494,11 @@ const wordCount = article.content
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
   },
   contentContainer: {
     paddingHorizontal: 20,
@@ -507,7 +507,6 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#666',
     marginTop: 12,
   },
   headerButtons: {

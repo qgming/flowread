@@ -26,8 +26,11 @@ export interface TranslationSettings {
   translationPrompt: string;
 }
 
+export type ThemeMode = 'system' | 'light' | 'dark';
+
 export interface Settings {
-  isDarkMode: boolean;
+  themeMode: ThemeMode;
+  isDarkMode?: boolean; // 向后兼容
   aiProviders: {
     flowai: AIProviderConfig;
     deepseek: AIProviderConfig;
@@ -103,7 +106,7 @@ export const defaultAnalysisSettings: AnalysisSettings = {
 };
 
 export const defaultSettings: Settings = {
-  isDarkMode: false,
+  themeMode: 'system',
   aiProviders: defaultAIProviders,
   deeplx: defaultDeepLXConfig,
   translation: defaultTranslationSettings,
@@ -123,9 +126,19 @@ export const loadSettings = async (): Promise<Settings> => {
     const settingsJson = await AsyncStorage.getItem(SETTINGS_KEY);
     if (settingsJson) {
       const parsed = JSON.parse(settingsJson);
+      
+      // 向后兼容：处理旧版本的isDarkMode
+      let themeMode: ThemeMode = 'system';
+      if (parsed.themeMode) {
+        themeMode = parsed.themeMode;
+      } else if (typeof parsed.isDarkMode === 'boolean') {
+        themeMode = parsed.isDarkMode ? 'dark' : 'light';
+      }
+      
       return {
         ...defaultSettings,
         ...parsed,
+        themeMode,
         aiProviders: {
           ...defaultAIProviders,
           ...(parsed.aiProviders || {}),

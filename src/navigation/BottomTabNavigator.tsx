@@ -4,19 +4,22 @@ import { Ionicons } from '@expo/vector-icons';
 import ReadingScreen from '../screens/ReadingScreen';
 import FavoritesScreen from '../screens/FavoritesScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import { useTheme } from '../theme/ThemeContext';
 
 const Tab = createBottomTabNavigator();
 
 export default function BottomTabNavigator() {
+  const { theme } = useTheme();
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarActiveTintColor: '#007AFF',
-        tabBarInactiveTintColor: '#8E8E93',
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textTertiary,
         tabBarStyle: {
-          backgroundColor: '#fff',
+          backgroundColor: theme.colors.background,
           borderTopWidth: 0.5,
-          borderTopColor: '#C6C6C8',
+          borderTopColor: theme.colors.border,
           height: 83,
           paddingBottom: 28,
           paddingTop: 10,
@@ -24,9 +27,10 @@ export default function BottomTabNavigator() {
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '500',
+          color: theme.colors.textSecondary,
         },
         headerStyle: {
-          backgroundColor: '#fff',
+          backgroundColor: theme.colors.background,
           elevation: 0,
           shadowOpacity: 0,
           shadowOffset: {
@@ -39,6 +43,7 @@ export default function BottomTabNavigator() {
         headerTitleStyle: {
           fontSize: 22,
           fontWeight: '900',
+          color: theme.colors.text,
         },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap;

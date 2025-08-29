@@ -1,5 +1,6 @@
 import React, { useMemo, useCallback } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { useTheme } from '../theme/ThemeContext';
 
 interface PressableTextProps {
   text: string;
@@ -23,6 +24,8 @@ export default function PressableText({
   wordStyle,
   favoriteWords
 }: PressableTextProps) {
+  const { theme } = useTheme();
+  
   // 使用精确的正则表达式进行英文分词
   const tokens = useMemo(() => {
     if (!text) return [];
@@ -54,11 +57,15 @@ export default function PressableText({
     onWordPress(word, text);
   }, [onWordPress, text]);
 
+  const getFavoriteBackgroundColor = () => {
+    return theme.isDark ? '#4A411C' : '#FFFDE7';
+  };
+
   const renderTokens = () => {
     return tokens.map((token, index) => {
       if (token.type === 'whitespace') {
         return (
-          <Text key={`space-${index}`} style={styles.whitespace}>
+          <Text key={`space-${index}`} style={[styles.whitespace, { color: theme.colors.text }]}>
             {token.text}
           </Text>
         );
@@ -67,7 +74,7 @@ export default function PressableText({
       if (token.type === 'word') {
         const isFavorite = favoriteWords && favoriteWords.has(token.text.toLowerCase());
         const customStyle = wordStyle ? wordStyle(token.text, index) : null;
-        const favoriteStyle = isFavorite ? styles.favoriteWord : null;
+        const favoriteStyle = isFavorite ? [styles.favoriteWord, { backgroundColor: getFavoriteBackgroundColor() }] : null;
         
         return (
           <TouchableOpacity
@@ -76,7 +83,7 @@ export default function PressableText({
             style={[styles.wordTouchable, customStyle]}
             activeOpacity={0.7}
           >
-            <Text style={[styles.wordText, customStyle, favoriteStyle]}>
+            <Text style={[styles.wordText, { color: theme.colors.text }, customStyle, favoriteStyle]}>
               {token.text}
             </Text>
           </TouchableOpacity>
@@ -85,7 +92,7 @@ export default function PressableText({
 
       // 标点符号
       return (
-        <Text key={`punct-${index}`} style={styles.punctuation}>
+        <Text key={`punct-${index}`} style={[styles.punctuation, { color: theme.colors.text }]}>
           {token.text}
         </Text>
       );
@@ -116,14 +123,12 @@ const styles = StyleSheet.create({
   wordText: {
     fontSize: 18,
     lineHeight: 32,
-    color: '#000',
     textAlign: 'auto',
   },
   favoriteWord: {
-    backgroundColor: '#FFFDE7',
     borderRadius: 9,
     paddingHorizontal: 5,
-    marginVertical:2,
+    marginVertical: 2,
   },
   whitespace: {
     fontSize: 18,
@@ -132,6 +137,5 @@ const styles = StyleSheet.create({
   punctuation: {
     fontSize: 18,
     lineHeight: 32,
-    color: '#000',
   },
 });

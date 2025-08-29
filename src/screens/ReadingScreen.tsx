@@ -16,8 +16,10 @@ import { Ionicons } from '@expo/vector-icons';
 import ArticleCard from '../components/ArticleCard';
 import BottomActionSheet from '../components/BottomActionSheet';
 import Database, { Article } from '../database/database';
+import { useTheme } from '../theme/ThemeContext';
 
 export default function ReadingScreen({ navigation }: any) {
+  const { theme } = useTheme();
   const [articles, setArticles] = useState<Article[]>([]);
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [pasteModalVisible, setPasteModalVisible] = useState(false);
@@ -182,8 +184,8 @@ export default function ReadingScreen({ navigation }: any) {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Text style={styles.emptyText}>暂无文章</Text>
-      <Text style={styles.emptySubtext}>点击右下角"+"按钮添加文章</Text>
+      <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>暂无文章</Text>
+      <Text style={[styles.emptySubtext, { color: theme.colors.textTertiary }]}>点击右下角"+"按钮添加文章</Text>
     </View>
   );
 
@@ -198,21 +200,22 @@ export default function ReadingScreen({ navigation }: any) {
     },
   ];
 
-    return (
-    <View style={styles.container}>
+  return (
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* 搜索框 */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
+      <View style={[styles.searchContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
+        <Ionicons name="search" size={20} color={theme.colors.textTertiary} style={styles.searchIcon} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: theme.colors.text }]}
           placeholder="搜索文章标题..."
+          placeholderTextColor={theme.colors.textTertiary}
           value={searchQuery}
           onChangeText={setSearchQuery}
           returnKeyType="search"
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-            <Ionicons name="close-circle" size={20} color="#999" />
+            <Ionicons name="close-circle" size={20} color={theme.colors.textTertiary} />
           </TouchableOpacity>
         )}
       </View>
@@ -228,13 +231,14 @@ export default function ReadingScreen({ navigation }: any) {
             <TouchableOpacity
               style={[
                 styles.tag,
-                selectedTags.size === 0 && styles.tagSelected
+                { backgroundColor: selectedTags.size === 0 ? theme.colors.primary : theme.colors.surfaceVariant },
+                selectedTags.size === 0 && { borderColor: theme.colors.primary }
               ]}
               onPress={clearAllTags}
             >
               <Text style={[
                 styles.tagText,
-                selectedTags.size === 0 && styles.tagTextSelected
+                { color: selectedTags.size === 0 ? theme.colors.onPrimary : theme.colors.textSecondary }
               ]}>
                 全部
               </Text>
@@ -245,13 +249,14 @@ export default function ReadingScreen({ navigation }: any) {
                 key={tag}
                 style={[
                   styles.tag,
-                  selectedTags.has(tag) && styles.tagSelected
+                  { backgroundColor: selectedTags.has(tag) ? theme.colors.primary : theme.colors.surfaceVariant },
+                  selectedTags.has(tag) && { borderColor: theme.colors.primary }
                 ]}
                 onPress={() => toggleTag(tag)}
               >
                 <Text style={[
                   styles.tagText,
-                  selectedTags.has(tag) && styles.tagTextSelected
+                  { color: selectedTags.has(tag) ? theme.colors.onPrimary : theme.colors.textSecondary }
                 ]}>
                   {tag}
                 </Text>
@@ -271,10 +276,10 @@ export default function ReadingScreen({ navigation }: any) {
 
       {/* 悬浮按钮 */}
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
         onPress={() => setBottomSheetVisible(true)}
       >
-        <Ionicons name="add" size={28} color="#fff" />
+        <Ionicons name="add" size={28} color={theme.colors.onPrimary} />
       </TouchableOpacity>
 
       {/* 底部操作表 */}
@@ -292,20 +297,30 @@ export default function ReadingScreen({ navigation }: any) {
         visible={pasteModalVisible}
         onRequestClose={() => setPasteModalVisible(false)}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>添加文章</Text>
+        <View style={[styles.modalContainer, { backgroundColor: theme.colors.overlay }]}>
+          <View style={[styles.modalBox, { backgroundColor: theme.colors.modalBackground }]}>
+            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>添加文章</Text>
             
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                borderColor: theme.colors.border, 
+                color: theme.colors.text,
+                backgroundColor: theme.colors.surface
+              }]}
               placeholder="标题"
+              placeholderTextColor={theme.colors.textTertiary}
               value={title}
               onChangeText={setTitle}
             />
             
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[styles.input, styles.textArea, { 
+                borderColor: theme.colors.border, 
+                color: theme.colors.text,
+                backgroundColor: theme.colors.surface
+              }]}
               placeholder="内容"
+              placeholderTextColor={theme.colors.textTertiary}
               value={content}
               onChangeText={setContent}
               multiline
@@ -314,17 +329,17 @@ export default function ReadingScreen({ navigation }: any) {
             
             <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={styles.cancelButton}
+                style={[styles.cancelButton, { backgroundColor: theme.colors.surfaceVariant }]}
                 onPress={() => setPasteModalVisible(false)}
               >
-                <Text style={styles.cancelButtonText}>取消</Text>
+                <Text style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}>取消</Text>
               </TouchableOpacity>
               
               <TouchableOpacity
-                style={styles.saveButton}
+                style={[styles.saveButton, { backgroundColor: theme.colors.primary }]}
                 onPress={handlePasteImport}
               >
-                <Text style={styles.saveButtonText}>保存</Text>
+                <Text style={[styles.saveButtonText, { color: theme.colors.onPrimary }]}>保存</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -337,7 +352,6 @@ export default function ReadingScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -345,7 +359,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 5,
     marginBottom: 8,
-    backgroundColor: '#f5f5f5',
     borderRadius: 10,
     paddingHorizontal: 12,
     height: 40,
@@ -356,7 +369,6 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#333',
     paddingVertical: 8,
   },
   clearButton: {
@@ -373,20 +385,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     marginRight: 8,
-    backgroundColor: '#f5f5f5',
     borderRadius: 10,
-  },
-  tagSelected: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   tagText: {
     fontSize: 14,
-    color: '#666',
-  },
-  tagTextSelected: {
-    color: '#fff',
-    fontWeight: '600',
   },
   emptyContainer: {
     flex: 1,
@@ -397,12 +401,10 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#666',
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 16,
-    color: '#999',
     textAlign: 'center',
   },
   emptyList: {
@@ -417,7 +419,6 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -433,10 +434,8 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalBox: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
     width: '90%',
@@ -450,7 +449,6 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
     borderRadius: 8,
     padding: 12,
     marginBottom: 12,
@@ -468,19 +466,16 @@ const styles = StyleSheet.create({
   cancelButton: {
     flex: 1,
     marginRight: 8,
-    backgroundColor: '#f0f0f0',
     borderRadius: 8,
     paddingVertical: 12,
   },
   saveButton: {
     flex: 1,
     marginLeft: 8,
-    backgroundColor: '#007AFF',
     borderRadius: 8,
     paddingVertical: 12,
   },
   cancelButtonText: {
-    color: '#666',
     fontSize: 16,
     textAlign: 'center',
   },

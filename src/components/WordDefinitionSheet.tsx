@@ -16,6 +16,7 @@ import Markdown from 'react-native-markdown-display';
 import { loadSettings } from '../utils/settingsStorage';
 import { DeepLXTranslationService } from '../services/translation';
 import AIWordAnalysis from './AIWordAnalysis';
+import { useTheme } from '../theme/ThemeContext';
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -38,10 +39,12 @@ interface HeaderActionButtonProps {
 const HeaderActionButton: React.FC<HeaderActionButtonProps> = ({ 
   iconName, 
   onPress, 
-  color = '#007AFF', 
+  color, 
   size = 28,
   isActive = false 
 }) => {
+  const { theme } = useTheme();
+  
   return (
     <TouchableOpacity 
       style={styles.headerActionButton} 
@@ -51,13 +54,14 @@ const HeaderActionButton: React.FC<HeaderActionButtonProps> = ({
       <Ionicons 
         name={iconName} 
         size={size} 
-        color={isActive ? '#FFD700' : color} 
+        color={isActive ? '#FFD700' : (color || theme.colors.primary)} 
       />
     </TouchableOpacity>
   );
 };
 
 export default function WordDefinitionSheet({ visible, onClose, word, context, onFavoriteChange }: WordDefinitionSheetProps) {
+  const { theme } = useTheme();
   const [translation, setTranslation] = useState<string>('');
   const [definition, setDefinition] = useState<string>('');
   const [loadingTranslation, setLoadingTranslation] = useState(false);
@@ -235,11 +239,11 @@ export default function WordDefinitionSheet({ visible, onClose, word, context, o
       visible={visible}
       onRequestClose={handleClose}
     >
-      <View style={styles.overlay}>
-        <View style={styles.sheet}>
+      <View style={[styles.overlay, { backgroundColor: theme.colors.overlay }]}>
+        <View style={[styles.sheet, { backgroundColor: theme.colors.modalBackground }]}>
           <View style={styles.contentContainer}>
-            <View style={styles.header}>
-              <Text style={styles.wordText}>{word}</Text>
+            <View style={[styles.header, { borderBottomColor: theme.colors.divider }]}>
+              <Text style={[styles.wordText, { color: theme.colors.text }]}>{word}</Text>
               <View style={styles.headerButtonsContainer}>
                 <HeaderActionButton 
                   iconName="refresh" 
@@ -249,7 +253,7 @@ export default function WordDefinitionSheet({ visible, onClose, word, context, o
                   iconName={isFavorite ? "star" : "star-outline"} 
                   onPress={toggleFavorite}
                   isActive={isFavorite}
-                  color={!isParsed ? '#ccc' : '#007AFF'}
+                  color={!isParsed ? theme.colors.textTertiary : theme.colors.primary}
                 />
                 <HeaderActionButton 
                   iconName="close-outline" 
@@ -260,12 +264,12 @@ export default function WordDefinitionSheet({ visible, onClose, word, context, o
             </View>
 
             <View style={styles.content}>
-              <View style={styles.translationSection}>
+              <View style={[styles.translationSection, { borderBottomColor: theme.colors.divider }]}>
                 {loadingTranslation ? (
-                  <ActivityIndicator size="small" color="#007AFF" />
+                  <ActivityIndicator size="small" color={theme.colors.primary} />
                 ) : (
-                  <View style={styles.translationCapsule}>
-                    <Text style={styles.translationText}>{translation}</Text>
+                  <View style={[styles.translationCapsule, { backgroundColor: theme.colors.primaryContainer }]}>
+                    <Text style={[styles.translationText, { color: theme.colors.primary }]}>{translation}</Text>
                   </View>
                 )}
               </View>
@@ -292,11 +296,9 @@ export default function WordDefinitionSheet({ visible, onClose, word, context, o
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     height: screenHeight * 0.7,
@@ -313,12 +315,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E5EA',
   },
   wordText: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#000',
     flex: 1,
   },
   headerActionButton: {
@@ -336,10 +336,8 @@ const styles = StyleSheet.create({
   translationSection: {
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E5EA',
   },
   translationCapsule: {
-    backgroundColor: '#e3f2fd',
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 6,
@@ -347,7 +345,6 @@ const styles = StyleSheet.create({
   },
   translationText: {
     fontSize: 16,
-    color: '#1565c0',
   },
   definitionSection: {
     flex: 1,

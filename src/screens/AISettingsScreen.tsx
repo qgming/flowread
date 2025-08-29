@@ -4,17 +4,19 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { loadSettings, Settings } from '../utils/settingsStorage';
+import { useTheme } from '../theme/ThemeContext';
 
 type AISettingsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface ProviderCard {
-  key: keyof Settings['aiProviders'];
+  key: string;
   name: string;
   description: string;
   isEnabled: boolean;
 }
 
 export default function AISettingsScreen() {
+  const { theme } = useTheme();
   const [settings, setSettings] = useState<Settings | null>(null);
   const navigation = useNavigation<AISettingsScreenNavigationProp>();
 
@@ -43,33 +45,44 @@ export default function AISettingsScreen() {
     },
   ] : [];
 
-  const handleProviderPress = (provider: keyof Settings['aiProviders']) => {
-    navigation.navigate('AIProviderConfig', { provider });
+  const handleProviderPress = (provider: string) => {
+    navigation.navigate('AIProviderConfig', { provider: provider as any });
   };
 
   if (!settings) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.loadingText}>加载中...</Text>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>加载中...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.content}>    
         <View style={styles.providersContainer}>
           {providers.map((provider) => (
             <TouchableOpacity
               key={provider.key}
-              style={[styles.providerCard, provider.isEnabled && styles.providerCardEnabled]}
+              style={[
+                styles.providerCard,
+                { 
+                  backgroundColor: theme.colors.surface,
+                  borderColor: provider.isEnabled ? theme.colors.primary : theme.colors.border
+                },
+                provider.isEnabled && { backgroundColor: theme.colors.primaryContainer }
+              ]}
               onPress={() => handleProviderPress(provider.key)}
             >
               <View style={styles.providerHeader}>
-                <Text style={styles.providerName}>{provider.name}</Text>
+                <Text style={[styles.providerName, { color: theme.colors.text }]}>
+                  {provider.name}
+                </Text>
                 {provider.isEnabled && (
-                  <View style={styles.enabledBadge}>
-                    <Text style={styles.enabledText}>已启用</Text>
+                  <View style={[styles.enabledBadge, { backgroundColor: theme.colors.primary }]}>
+                    <Text style={[styles.enabledText, { color: theme.colors.onPrimary }]}>
+                      已启用
+                    </Text>
                   </View>
                 )}
               </View>
@@ -84,7 +97,6 @@ export default function AISettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   content: {
     paddingHorizontal: 16,
@@ -93,15 +105,9 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   providerCard: {
-    backgroundColor: '#fff',
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
-  },
-  providerCardEnabled: {
-    borderColor: '#007AFF',
-    backgroundColor: '#F0F8FF',
   },
   providerHeader: {
     flexDirection: 'row',
@@ -111,22 +117,18 @@ const styles = StyleSheet.create({
   providerName: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#000',
   },
   enabledBadge: {
-    backgroundColor: '#007AFF',
     borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
   enabledText: {
     fontSize: 12,
-    color: '#fff',
     fontWeight: '500',
   },
   loadingText: {
     fontSize: 16,
-    color: '#8E8E93',
     textAlign: 'center',
     marginTop: 40,
   },

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Article } from '../database/database';
+import { useTheme } from '../theme/ThemeContext';
 
 interface ArticleCardProps {
   article: Article;
@@ -18,6 +19,8 @@ interface ArticleCardProps {
 }
 
 export default function ArticleCard({ article, onPress, onDelete }: ArticleCardProps) {
+  const { theme } = useTheme();
+  
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('zh-CN', {
@@ -47,41 +50,46 @@ export default function ArticleCard({ article, onPress, onDelete }: ArticleCardP
   };
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity style={styles.card} onPress={onPress}>
+    <View style={[styles.container, { marginHorizontal: 16, marginVertical: 8 }]}>
+      <TouchableOpacity 
+        style={[styles.card, { 
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.border 
+        }]} 
+        onPress={onPress}
+      >
         <View style={styles.header}>
-        <Text style={styles.title} numberOfLines={2}>
-          {article.title}
-        </Text>
-      </View>
+          <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={2}>
+            {article.title}
+          </Text>
+        </View>
 
-      <View style={styles.footer}>
-        <Text style={styles.date}>{formatDate(article.created_at)}</Text>
-        
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={handleDelete}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="close" size={20} color="#ff3b30" />
-        </TouchableOpacity>
-      </View>
-    </TouchableOpacity>
-  </View>
-);
+        <View style={styles.footer}>
+          <Text style={[styles.date, { color: theme.colors.textTertiary }]}>
+            {formatDate(article.created_at)}
+          </Text>
+          
+          <TouchableOpacity
+            style={styles.deleteButton}
+            onPress={handleDelete}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="close" size={20} color={theme.colors.error} />
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: 16,
-    marginVertical: 8,
+    // margin样式移到组件属性中，以便使用主题
   },
   card: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
   },
   header: {
     marginBottom: 2,
@@ -89,7 +97,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
     lineHeight: 24,
   },
   footer: {
@@ -102,6 +109,5 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: 14,
-    color: '#999',
   },
 });

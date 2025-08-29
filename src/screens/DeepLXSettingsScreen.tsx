@@ -14,10 +14,12 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { loadSettings, saveSettings, DeepLXConfig } from '../utils/settingsStorage';
 import { createDeepLXService } from '../services/translation';
+import { useTheme } from '../theme/ThemeContext';
 
 type DeepLXSettingsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function DeepLXSettingsScreen() {
+  const { theme } = useTheme();
   const [config, setConfig] = useState<DeepLXConfig>({
     url: 'https://deeplx.vercel.app/translate',
     apiKey: '',
@@ -77,47 +79,68 @@ export default function DeepLXSettingsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.content}>
         {/* 介绍卡片 */}
-        <View style={styles.introCard}>
-          <Text style={styles.providerName}>DeepL翻译服务</Text>
-          <Text style={styles.providerDescription}>
+        <View style={[styles.introCard, { 
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.border 
+        }]}>
+          <Text style={[styles.providerName, { color: theme.colors.text }]}>DeepL翻译服务</Text>
+          <Text style={[styles.providerDescription, { color: theme.colors.textSecondary }]}>
             基于DeepL的翻译服务，支持多种语言的高质量翻译。当前使用DeepLX无需付费即可使用，API密钥为可选项。
           </Text>
         </View>
 
         {/* 配置表单 */}
         <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>基础配置</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>基础配置</Text>
           
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>服务地址</Text>
+            <Text style={[styles.label, { color: theme.colors.text }]}>服务地址</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+                color: theme.colors.text
+              }]}
               value={config.url}
               onChangeText={(text) => handleInputChange('url', text)}
               placeholder="https://dplx.xi-xu.me/translate"
-              placeholderTextColor="#8E8E93"
+              placeholderTextColor={theme.colors.textTertiary}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>API密钥（可选）</Text>
+            <Text style={[styles.label, { color: theme.colors.text }]}>API密钥（可选）</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+                color: theme.colors.text
+              }]}
               value={config.apiKey}
               onChangeText={(text) => handleInputChange('apiKey', text)}
               placeholder="留空即可使用免费服务"
-              placeholderTextColor="#8E8E93"
+              placeholderTextColor={theme.colors.textTertiary}
               secureTextEntry
             />
           </View>
 
           {/* 测试结果 */}
           {testResult ? (
-            <View style={[styles.testResult, testResult.includes('成功') ? styles.testResultSuccess : styles.testResultError]}>
-              <Text style={[styles.testResultText, testResult.includes('成功') ? styles.testResultTextSuccess : styles.testResultTextError]}>
+            <View style={[
+              styles.testResult,
+              testResult.includes('成功') 
+                ? { backgroundColor: theme.colors.primaryContainer, borderColor: theme.colors.primary }
+                : { backgroundColor: theme.colors.error + '1A', borderColor: theme.colors.error }
+            ]}>
+              <Text style={[
+                styles.testResultText,
+                testResult.includes('成功') 
+                  ? { color: theme.colors.primary }
+                  : { color: theme.colors.error }
+              ]}>
                 {testResult}
               </Text>
             </View>
@@ -127,23 +150,28 @@ export default function DeepLXSettingsScreen() {
         {/* 底部按钮 */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
-            style={[styles.button, styles.testButton]} 
+            style={[styles.button, styles.testButton, { 
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.primary
+            }]} 
             onPress={handleTestConnection}
             disabled={isTesting}
           >
             {isTesting ? (
-              <ActivityIndicator size="small" color="#007AFF" />
+              <ActivityIndicator size="small" color={theme.colors.primary} />
             ) : (
-              <Text style={[styles.buttonText, styles.testButtonText]}>验证</Text>
+              <Text style={[styles.buttonText, { color: theme.colors.primary }]}>验证</Text>
             )}
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={[styles.button, styles.saveButton, !hasChanges && styles.saveButtonDisabled]} 
+            style={[styles.button, styles.saveButton, !hasChanges && { 
+              backgroundColor: theme.colors.surfaceVariant 
+            }]} 
             onPress={handleSave}
             disabled={!hasChanges}
           >
-            <Text style={[styles.buttonText, styles.saveButtonText, !hasChanges && styles.saveButtonTextDisabled]}>
+            <Text style={[styles.buttonText, !hasChanges ? { color: theme.colors.textTertiary } : { color: theme.colors.onPrimary }]}>
               保存
             </Text>
           </TouchableOpacity>
@@ -156,29 +184,24 @@ export default function DeepLXSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   content: {
     paddingHorizontal: 16,
     paddingBottom: 100,
   },
   introCard: {
-    backgroundColor: '#fff',
     borderRadius: 16,
     padding: 20,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
   },
   providerName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#000',
     marginBottom: 8,
   },
   providerDescription: {
     fontSize: 16,
-    color: '#8E8E93',
     lineHeight: 22,
   },
   formSection: {
@@ -187,7 +210,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#000',
     marginBottom: 16,
   },
   inputGroup: {
@@ -196,18 +218,14 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#000',
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#000',
     borderWidth: 1,
-    borderColor: '#E5E5EA',
   },
   testResult: {
     marginTop: 16,
@@ -215,23 +233,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
   },
-  testResultSuccess: {
-    backgroundColor: '#f0f9ff',
-    borderColor: '#0ea5e9',
-  },
-  testResultError: {
-    backgroundColor: '#fef2f2',
-    borderColor: '#ef4444',
-  },
   testResultText: {
     fontSize: 14,
     lineHeight: 20,
-  },
-  testResultTextSuccess: {
-    color: '#0ea5e9',
-  },
-  testResultTextError: {
-    color: '#ef4444',
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -245,27 +249,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   testButton: {
-    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#007AFF',
   },
   saveButton: {
     backgroundColor: '#007AFF',
   },
-  saveButtonDisabled: {
-    backgroundColor: '#E5E5EA',
-  },
   buttonText: {
     fontSize: 17,
     fontWeight: '600',
-  },
-  testButtonText: {
-    color: '#007AFF',
-  },
-  saveButtonText: {
-    color: '#fff',
-  },
-  saveButtonTextDisabled: {
-    color: '#8E8E93',
   },
 });

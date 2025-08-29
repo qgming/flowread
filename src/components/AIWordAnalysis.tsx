@@ -13,6 +13,7 @@ import Markdown from 'react-native-markdown-display';
 import { loadSettings } from '../utils/settingsStorage';
 import { ChatService } from '../services/chat';
 import database from '../database/database';
+import { useTheme } from '../theme/ThemeContext';
 
 interface AIWordAnalysisProps {
   word: string;
@@ -35,6 +36,7 @@ const AIWordAnalysis = forwardRef<AIWordAnalysisRef, AIWordAnalysisProps>(({
   onAnalysisComplete,
   onError
 }, ref) => {
+  const { theme } = useTheme();
   const [definition, setDefinition] = useState<string>('');
   const [loadingDefinition, setLoadingDefinition] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -245,19 +247,99 @@ const AIWordAnalysis = forwardRef<AIWordAnalysisRef, AIWordAnalysisProps>(({
     }
   }, [word, context, hasWordData, resetState, onAnalysisComplete]);
 
+  const markdownStyles = StyleSheet.create({
+    body: {
+      fontSize: 16,
+      lineHeight: 24,
+      color: theme.colors.text,
+    },
+    heading1: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: theme.colors.text,
+      marginTop: 16,
+      marginBottom: 8,
+    },
+    heading2: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: theme.colors.text,
+      marginTop: 14,
+      marginBottom: 6,
+    },
+    heading3: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.colors.text,
+      marginTop: 12,
+      marginBottom: 4,
+    },
+    paragraph: {
+      fontSize: 16,
+      lineHeight: 24,
+      color: theme.colors.text,
+      marginBottom: 8,
+    },
+    list_item: {
+      fontSize: 16,
+      lineHeight: 24,
+      color: theme.colors.text,
+      marginBottom: 4,
+    },
+    bullet_list: {
+      marginBottom: 8,
+    },
+    ordered_list: {
+      marginBottom: 8,
+    },
+    blockquote: {
+      backgroundColor: theme.colors.surfaceVariant,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.colors.primary,
+      paddingLeft: 12,
+      paddingVertical: 8,
+      marginVertical: 8,
+      fontStyle: 'italic',
+    },
+    code_inline: {
+      backgroundColor: theme.colors.surfaceVariant,
+      paddingHorizontal: 4,
+      paddingVertical: 2,
+      borderRadius: 4,
+      fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+      fontSize: 14,
+      color: theme.colors.text,
+    },
+    code_block: {
+      backgroundColor: theme.colors.surfaceVariant,
+      padding: 12,
+      borderRadius: 8,
+      marginVertical: 8,
+      fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+      fontSize: 14,
+      color: theme.colors.text,
+    },
+    strong: {
+      fontWeight: '700',
+    },
+    em: {
+      fontStyle: 'italic',
+    },
+  });
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Flow老师</Text>
+    <View style={[styles.container, { backgroundColor: theme.colors.modalBackground }]}>
+      <View style={[styles.header, { backgroundColor: theme.colors.modalBackground }]}>
+        <Text style={[styles.title, { color: theme.colors.textSecondary }]}>Flow老师</Text>
         {loadingDefinition && (
           <View style={styles.loadingStatus}>
-            <ActivityIndicator size="small" color="#007AFF" />
-            <Text style={styles.loadingStatusText}>解析中</Text>
+            <ActivityIndicator size="small" color={theme.colors.primary} />
+            <Text style={[styles.loadingStatusText, { color: theme.colors.primary }]}>解析中</Text>
           </View>
         )}
       </View>
       
-      <View style={styles.contentContainer}>
+      <View style={[styles.contentContainer, { borderColor: theme.colors.border }]}>
         <ScrollView 
           ref={scrollViewRef}
           style={styles.scrollView}
@@ -271,10 +353,13 @@ const AIWordAnalysis = forwardRef<AIWordAnalysisRef, AIWordAnalysisProps>(({
         >
           {error ? (
             <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle-outline" size={24} color="#ff3b30" />
-              <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-                <Text style={styles.retryButtonText}>重试</Text>
+              <Ionicons name="alert-circle-outline" size={24} color={theme.colors.error} />
+              <Text style={[styles.errorText, { color: theme.colors.error }]}>{error}</Text>
+              <TouchableOpacity 
+                style={[styles.retryButton, { backgroundColor: theme.colors.primary }]} 
+                onPress={handleRetry}
+              >
+                <Text style={[styles.retryButtonText, { color: theme.colors.onPrimary }]}>重试</Text>
               </TouchableOpacity>
             </View>
           ) : definition ? (
@@ -285,20 +370,20 @@ const AIWordAnalysis = forwardRef<AIWordAnalysisRef, AIWordAnalysisProps>(({
             </View>
           ) : (
             <View style={styles.startParsingContainer}>
-              <Ionicons name="school-outline" size={48} color="#007AFF" />
-              <Text style={styles.startParsingTitle}>开始AI解析</Text>
-              <Text style={styles.startParsingDescription}>
+              <Ionicons name="school-outline" size={48} color={theme.colors.primary} />
+              <Text style={[styles.startParsingTitle, { color: theme.colors.text }]}>开始AI解析</Text>
+              <Text style={[styles.startParsingDescription, { color: theme.colors.textSecondary }]}>
                 点击"开始解析"按钮，让Flow老师为您详细分析这个单词
               </Text>
               <TouchableOpacity 
-                style={styles.startParsingButton} 
+                style={[styles.startParsingButton, { backgroundColor: theme.colors.primary }]} 
                 onPress={handleStartParsing}
                 disabled={loadingDefinition}
               >
                 {loadingDefinition ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small" color={theme.colors.onPrimary} />
                 ) : (
-                  <Text style={styles.startParsingButtonText}>开始解析</Text>
+                  <Text style={[styles.startParsingButtonText, { color: theme.colors.onPrimary }]}>开始解析</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -309,87 +394,10 @@ const AIWordAnalysis = forwardRef<AIWordAnalysisRef, AIWordAnalysisProps>(({
   );
 });
 
-const markdownStyles = StyleSheet.create({
-  body: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#333',
-  },
-  heading1: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#000',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  heading2: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
-    marginTop: 14,
-    marginBottom: 6,
-  },
-  heading3: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  paragraph: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#333',
-    marginBottom: 8,
-  },
-  list_item: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#333',
-    marginBottom: 4,
-  },
-  bullet_list: {
-    marginBottom: 8,
-  },
-  ordered_list: {
-    marginBottom: 8,
-  },
-  blockquote: {
-    backgroundColor: '#f5f5f5',
-    borderLeftWidth: 4,
-    borderLeftColor: '#007AFF',
-    paddingLeft: 12,
-    paddingVertical: 8,
-    marginVertical: 8,
-    fontStyle: 'italic',
-  },
-  code_inline: {
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    borderRadius: 4,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: 14,
-  },
-  code_block: {
-    backgroundColor: '#f5f5f5',
-    padding: 12,
-    borderRadius: 8,
-    marginVertical: 8,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: 14,
-  },
-  strong: {
-    fontWeight: '700',
-  },
-  em: {
-    fontStyle: 'italic',
-  },
-});
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    borderRadius: 12,
   },
   header: {
     flexDirection: 'row',
@@ -400,7 +408,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#666',
   },
   loadingStatus: {
     flexDirection: 'row',
@@ -408,14 +415,13 @@ const styles = StyleSheet.create({
   },
   loadingStatusText: {
     fontSize: 16,
-    color: '#007AFF',
     marginLeft: 6,
   },
   contentContainer: {
     flex: 1,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#E5E5EA',
-    borderRadius: 8,
+    borderRadius: 12,
+    padding: 10,
   },
   scrollView: {
     flex: 1,
@@ -436,19 +442,16 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: 16,
-    color: '#ff3b30',
     textAlign: 'center',
     marginBottom: 15,
     lineHeight: 22,
   },
   retryButton: {
-    backgroundColor: '#007AFF',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
   },
   retryButtonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -461,19 +464,16 @@ const styles = StyleSheet.create({
   startParsingTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#333',
     marginTop: 16,
     marginBottom: 8,
   },
   startParsingDescription: {
     fontSize: 16,
-    color: '#666',
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
   },
   startParsingButton: {
-    backgroundColor: '#007AFF',
     paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 24,
@@ -484,7 +484,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   startParsingButtonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },

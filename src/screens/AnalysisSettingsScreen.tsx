@@ -7,15 +7,17 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { loadSettings, saveSettings, Settings } from '../utils/settingsStorage';
+import { useTheme } from '../theme/ThemeContext';
+import ModalSelector from '../components/ModalSelector';
 
 type AnalysisSettingsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function AnalysisSettingsScreen() {
+  const { theme } = useTheme();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [tempSettings, setTempSettings] = useState<Settings | null>(null);
   const navigation = useNavigation<AnalysisSettingsScreenNavigationProp>();
@@ -41,8 +43,8 @@ export default function AnalysisSettingsScreen() {
 
   if (!settings || !tempSettings) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.loadingText}>加载中...</Text>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>加载中...</Text>
       </View>
     );
   }
@@ -55,75 +57,66 @@ export default function AnalysisSettingsScreen() {
   ];
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.content}>
         {/* 单词解析设置 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>单词解析</Text>
+        <View style={[styles.section, { 
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.border 
+        }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>单词解析</Text>
           
           <View style={styles.subSection}>
-            <Text style={styles.subSectionTitle}>解析模型</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={tempSettings.analysis.wordAnalysisProvider}
-                onValueChange={(value: keyof Settings['aiProviders']) =>
-                  setTempSettings({
-                    ...tempSettings,
-                    analysis: {
-                      ...tempSettings.analysis,
-                      wordAnalysisProvider: value,
-                    },
-                  })
-                }
-                style={styles.picker}
-              >
-                {providerOptions.map((option) => (
-                  <Picker.Item
-                    key={option.value}
-                    label={option.label}
-                    value={option.value}
-                  />
-                ))}
-              </Picker>
-            </View>
+            <Text style={[styles.subSectionTitle, { color: theme.colors.text }]}>解析模型</Text>
+            <ModalSelector
+              options={providerOptions}
+              selectedValue={tempSettings.analysis.wordAnalysisProvider}
+              onValueChange={(value: string) =>
+                setTempSettings({
+                  ...tempSettings,
+                  analysis: {
+                    ...tempSettings.analysis,
+                    wordAnalysisProvider: value as keyof Settings['aiProviders'],
+                  },
+                })
+              }
+              title="选择解析模型"
+            />
           </View>
         </View>
 
         {/* 文章解析设置 */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>文章解析</Text>
+        <View style={[styles.section, { 
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.border 
+        }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>文章解析</Text>
           
           <View style={styles.subSection}>
-            <Text style={styles.subSectionTitle}>解析模型</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={tempSettings.analysis.articleAnalysisProvider}
-                onValueChange={(value: keyof Settings['aiProviders']) =>
-                  setTempSettings({
-                    ...tempSettings,
-                    analysis: {
-                      ...tempSettings.analysis,
-                      articleAnalysisProvider: value,
-                    },
-                  })
-                }
-                style={styles.picker}
-              >
-                {providerOptions.map((option) => (
-                  <Picker.Item
-                    key={option.value}
-                    label={option.label}
-                    value={option.value}
-                  />
-                ))}
-              </Picker>
-            </View>
+            <Text style={[styles.subSectionTitle, { color: theme.colors.text }]}>解析模型</Text>
+            <ModalSelector
+              options={providerOptions}
+              selectedValue={tempSettings.analysis.articleAnalysisProvider}
+              onValueChange={(value: string) =>
+                setTempSettings({
+                  ...tempSettings,
+                  analysis: {
+                    ...tempSettings.analysis,
+                    articleAnalysisProvider: value as keyof Settings['aiProviders'],
+                  },
+                })
+              }
+              title="选择解析模型"
+            />
           </View>
         </View>
 
         {/* 保存按钮 */}
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>保存设置</Text>
+        <TouchableOpacity 
+          style={[styles.saveButton, { backgroundColor: theme.colors.primary }]} 
+          onPress={handleSave}
+        >
+          <Text style={[styles.saveButtonText, { color: theme.colors.onPrimary }]}>保存设置</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -133,29 +126,24 @@ export default function AnalysisSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   content: {
     paddingHorizontal: 16,
   },
   loadingText: {
     fontSize: 16,
-    color: '#8E8E93',
     textAlign: 'center',
     marginTop: 40,
   },
   section: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#000',
     marginBottom: 16,
   },
   subSection: {
@@ -164,20 +152,9 @@ const styles = StyleSheet.create({
   subSectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000',
     marginBottom: 8,
   },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  picker: {
-    height: 52,
-  },
   saveButton: {
-    backgroundColor: '#007AFF',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -185,7 +162,6 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   saveButtonText: {
-    color: '#fff',
     fontSize: 17,
     fontWeight: '600',
   },

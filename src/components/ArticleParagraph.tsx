@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import PressableText from './PressableText';
+import { useTheme } from '../theme/ThemeContext';
 
 interface ArticleParagraphProps {
   original: string;
@@ -21,6 +22,8 @@ export default function ArticleParagraph({
   onWordPress,
   favoriteWords,
 }: ArticleParagraphProps) {
+  const { theme } = useTheme();
+
   return (
     <View style={styles.paragraphWrapper}>
       <PressableText
@@ -31,20 +34,26 @@ export default function ArticleParagraph({
       
       {translated && (
         <View style={[styles.translationContainer, !showTranslation && styles.hidden]}>
-          <Text style={styles.translatedText}>{translated}</Text>
+          <Text style={[styles.translatedText, { color: theme.colors.textSecondary }]}>
+            {translated}
+          </Text>
         </View>
       )}
 
       {error && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorMessage}>{error}</Text>
+        <View style={[styles.errorContainer, { backgroundColor: `${theme.colors.error}1A` }]}>
+          <Text style={[styles.errorMessage, { color: theme.colors.error }]}>
+            {error}
+          </Text>
         </View>
       )}
 
       {isTranslating && (
         <View style={styles.translatingContainer}>
-          <ActivityIndicator size="small" color="#007AFF" />
-          <Text style={styles.translatingText}>翻译中...</Text>
+          <ActivityIndicator size="small" color={theme.colors.primary} />
+          <Text style={[styles.translatingText, { color: theme.colors.primary }]}>
+            翻译中...
+          </Text>
         </View>
       )}
     </View>
@@ -61,7 +70,6 @@ const styles = StyleSheet.create({
   translatedText: {
     fontSize: 18,
     lineHeight: 32,
-    color: '#777',
     textAlign: 'auto',
   },
   hidden: {
@@ -70,12 +78,10 @@ const styles = StyleSheet.create({
   errorContainer: {
     marginTop: 12,
     padding: 12,
-    backgroundColor: '#fff5f5',
     borderRadius: 8,
   },
   errorMessage: {
     fontSize: 14,
-    color: '#ff3b30',
   },
   translatingContainer: {
     marginTop: 12,
@@ -85,7 +91,6 @@ const styles = StyleSheet.create({
   },
   translatingText: {
     fontSize: 14,
-    color: '#007AFF',
     marginLeft: 8,
   },
 });

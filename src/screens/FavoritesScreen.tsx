@@ -17,6 +17,7 @@ import BottomActionSheet from '../components/BottomActionSheet';
 import WordDetailSheet from '../components/WordDetailSheet';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTheme } from '../theme/ThemeContext';
 
 interface FavoriteWord {
   id: number;
@@ -32,6 +33,7 @@ interface SectionData {
 }
 
 export default function FavoritesScreen() {
+  const { theme } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [favoriteWords, setFavoriteWords] = useState<FavoriteWord[]>([]);
   const [sections, setSections] = useState<SectionData[]>([]);
@@ -164,59 +166,67 @@ export default function FavoritesScreen() {
 
   const renderWordItem = ({ item }: { item: FavoriteWord }) => (
     <TouchableOpacity 
-      style={styles.wordItem}
+      style={[styles.wordItem, { borderBottomColor: theme.colors.divider }]}
       onPress={() => openWordDetail(item)}
     >
       <View style={styles.wordLeft}>
-        <Text style={styles.wordText}>{item.word}</Text>
+        <Text style={[styles.wordText, { color: theme.colors.text }]}>{item.word}</Text>
       </View>
       <TouchableOpacity 
         onPress={() => removeFavorite(item.word)}
         style={styles.deleteButton}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <Ionicons name="close" size={20} color="#ff3b30" />
+        <Ionicons name="close" size={20} color={theme.colors.error} />
       </TouchableOpacity>
     </TouchableOpacity>
   );
 
   const renderSectionHeader = ({ section: { title } }: { section: { title: string } }) => (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={[styles.sectionHeader, { backgroundColor: theme.colors.surfaceVariant, borderBottomColor: theme.colors.divider }]}>
+      <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>{title}</Text>
     </View>
   );
 
+  if (loading) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* 顶部栏 */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.countButton}>
-          <Text style={styles.countText}>
+      <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
+        <TouchableOpacity style={[styles.countButton, { backgroundColor: theme.colors.primary }]}>
+          <Text style={[styles.countText, { color: theme.colors.onPrimary }]}>
             {sections.reduce((total, section) => total + section.data.length, 0)}
           </Text>
         </TouchableOpacity>
         
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#8E8E93" style={styles.searchIcon} />
+        <View style={[styles.searchContainer, { backgroundColor: theme.colors.surface, shadowColor: theme.colors.text }]}>
+          <Ionicons name="search" size={20} color={theme.colors.textTertiary} style={styles.searchIcon} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: theme.colors.text }]}
             placeholder="搜索单词"
             value={searchText}
             onChangeText={setSearchText}
-            placeholderTextColor="#8E8E93"
+            placeholderTextColor={theme.colors.textTertiary}
           />
           {searchText.length > 0 && (
             <TouchableOpacity onPress={() => setSearchText('')}>
-              <Ionicons name="close-circle" size={20} color="#8E8E93" />
+              <Ionicons name="close-circle" size={20} color={theme.colors.textTertiary} />
             </TouchableOpacity>
           )}
         </View>
         
         <TouchableOpacity 
-          style={styles.actionButton}
+          style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
           onPress={() => setBottomSheetVisible(true)}
         >
-          <Ionicons name="ellipsis-horizontal" size={24} color="#fff" />
+          <Ionicons name="ellipsis-horizontal" size={24} color={theme.colors.onPrimary} />
         </TouchableOpacity>
       </View>
 
@@ -232,9 +242,9 @@ export default function FavoritesScreen() {
         ]}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="bookmarks-outline" size={64} color="#C7C7CC" />
-            <Text style={styles.emptyTitle}>暂无收藏单词</Text>
-            <Text style={styles.emptySubtitle}>在阅读文章时点击单词即可添加收藏</Text>
+            <Ionicons name="bookmarks-outline" size={64} color={theme.colors.textTertiary} />
+            <Text style={[styles.emptyTitle, { color: theme.colors.textSecondary }]}>暂无收藏单词</Text>
+            <Text style={[styles.emptySubtitle, { color: theme.colors.textTertiary }]}>在阅读文章时点击单词即可添加收藏</Text>
           </View>
         }
       />
@@ -260,19 +270,19 @@ export default function FavoritesScreen() {
 
       {/* 悬浮胶囊按钮 */}
       <View style={styles.floatingButtonContainer}>
-        <View style={styles.capsuleButton}>
+        <View style={[styles.capsuleButton, { backgroundColor: theme.colors.surface, shadowColor: theme.colors.text }]}>
           <TouchableOpacity 
             style={styles.buttonHalf}
             onPress={() => navigation.navigate('ImmersiveReading')}
           >
-            <Text style={styles.buttonText}>沉浸刷词</Text>
+            <Text style={[styles.buttonText, { color: theme.colors.primary }]}>沉浸刷词</Text>
           </TouchableOpacity>
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: theme.colors.divider }]} />
           <TouchableOpacity 
             style={styles.buttonHalf}
             onPress={() => navigation.navigate('WordMemory')}
           >
-            <Text style={styles.buttonText}>单词记忆</Text>
+            <Text style={[styles.buttonText, { color: theme.colors.primary }]}>单词记忆</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -283,13 +293,11 @@ export default function FavoritesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
@@ -297,20 +305,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginTop: 5,
     marginBottom: 8,
-    backgroundColor: '#fff',
   },
   countButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   countText: {
     fontSize: 14,
-    color: '#fff',
     fontWeight: '600',
   },
   searchContainer: {
@@ -318,11 +323,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     height: 36,  
     alignItems: 'center',
-    backgroundColor: '#fff',
     borderRadius: 18,
     paddingHorizontal: 12,
     marginRight: 12,
-    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 1,
@@ -337,14 +340,12 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#000', 
     paddingVertical: 0,
   },
   actionButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#007AFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -355,16 +356,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sectionHeader: {
-    backgroundColor: '#f5f5f5',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#ddd',
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
   },
   wordItem: {
     flexDirection: 'row',
@@ -374,7 +372,6 @@ const styles = StyleSheet.create({
     minHeight: 50,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#ddd',
   },
   wordLeft: {
     flex: 1,
@@ -384,7 +381,6 @@ const styles = StyleSheet.create({
   wordText: {
     fontSize: 17,
     fontWeight: '400',
-    color: '#000',
   },
   deleteButton: {
     padding: 4,
@@ -398,16 +394,14 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#666',
     marginTop: 12,
     marginBottom: 4,
   },
   emptySubtitle: {
     fontSize: 16,
-    color: '#999',
     textAlign: 'center',
   },
- floatingButtonContainer: {
+  floatingButtonContainer: {
     position: 'absolute',
     bottom: 20,
     left: 0,
@@ -417,19 +411,17 @@ const styles = StyleSheet.create({
   },
   capsuleButton: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
     borderRadius: 50,
     paddingVertical: 10,
     paddingHorizontal: 4,
     width: '60%',
     maxWidth: 500,
-    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 8,
     },
     shadowOpacity: 0.12,
-    shadowRadius: 12,
+    shadowRadius: 10,
     elevation: 8,
   },
   buttonHalf: {
@@ -440,13 +432,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   buttonText: {
-    color: '#007AFF',
     fontSize: 16,
     fontWeight: '600',
   },
   divider: {
     width: 1,
     height: '100%',
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
   },
 });

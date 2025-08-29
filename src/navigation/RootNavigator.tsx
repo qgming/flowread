@@ -11,7 +11,9 @@ import TranslationSettingsScreen from '../screens/TranslationSettingsScreen';
 import AnalysisSettingsScreen from '../screens/AnalysisSettingsScreen';
 import ImmersiveReadingScreen from '../screens/ImmersiveReadingScreen';
 import WordMemoryScreen from '../screens/WordMemoryScreen';
+import AboutScreen from '../screens/AboutScreen';
 import { Article } from '../database/database';
+import { useTheme } from '../theme/ThemeContext';
 
 export type RootStackParamList = {
   Main: undefined;
@@ -23,22 +25,26 @@ export type RootStackParamList = {
   AnalysisSettings: undefined;
   ImmersiveReading: undefined;
   WordMemory: undefined;
+  About: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
+  const { theme } = useTheme();
+
   return (
     <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
           headerStyle: {
-            backgroundColor: '#fff',
+            backgroundColor: theme.colors.background,
           },
-          headerTintColor: '#007AFF',
+          headerTintColor: theme.colors.primary,
           headerTitleStyle: {
             fontWeight: '600',
             fontSize: 18,
+            color: theme.colors.text,
           },
           headerShadowVisible: false,
         }}
@@ -65,7 +71,7 @@ export default function RootNavigator() {
               <Text style={{ 
                 fontSize: 18, 
                 fontWeight: '600', 
-                color: '#007AFF',
+                color: theme.colors.primary,
                 marginLeft: -25 
               }}>AI设置</Text>
             ),
@@ -81,7 +87,7 @@ export default function RootNavigator() {
               <Text style={{ 
                  fontSize: 18, 
                 fontWeight: '600', 
-                color: '#007AFF',
+                color: theme.colors.primary,
                 marginLeft: -25
               }}>提供商配置</Text>
             ),
@@ -97,7 +103,7 @@ export default function RootNavigator() {
               <Text style={{ 
                  fontSize: 18, 
                 fontWeight: '600', 
-                color: '#007AFF',
+                color: theme.colors.primary,
                 marginLeft: -25
               }}>DeepL设置</Text>
             ),
@@ -113,7 +119,7 @@ export default function RootNavigator() {
               <Text style={{ 
                 fontSize: 18, 
                 fontWeight: '600', 
-                color: '#007AFF',
+                color: theme.colors.primary,
                 marginLeft: -25 
               }}>翻译偏好</Text>
             ),
@@ -129,7 +135,7 @@ export default function RootNavigator() {
               <Text style={{ 
                 fontSize: 18, 
                 fontWeight: '600', 
-                color: '#007AFF',
+                color: theme.colors.primary,
                 marginLeft: -25 
               }}>解析服务</Text>
             ),
@@ -151,6 +157,22 @@ export default function RootNavigator() {
           component={WordMemoryScreen as any}
           options={{
             headerTitle: '',
+            headerBackTitle: '返回',
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen 
+          name="About" 
+          component={AboutScreen}
+          options={{
+            headerTitle: () => (
+              <Text style={{ 
+                fontSize: 18, 
+                fontWeight: '600', 
+                color: theme.colors.primary,
+                marginLeft: -25 
+              }}>关于我们</Text>
+            ),
             headerBackTitle: '返回',
             headerShadowVisible: false,
           }}

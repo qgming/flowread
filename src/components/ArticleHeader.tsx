@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useTheme } from '../theme/ThemeContext';
 
 interface ArticleHeaderProps {
   title: string;
@@ -22,9 +23,11 @@ export default function ArticleHeader({
   isUpdatingTags,
   wordCount,
 }: ArticleHeaderProps) {
+  const { theme } = useTheme();
+
   return (
     <View>
-      <Text style={styles.title}>{title}</Text>
+      <Text style={[styles.title, { color: theme.colors.text }]}>{title}</Text>
       
       <View style={styles.metaContainer}>
         <View style={styles.capsulesContainer}>
@@ -67,7 +70,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#1a1a1a',
     marginBottom: 12,
     lineHeight: 36,
   },

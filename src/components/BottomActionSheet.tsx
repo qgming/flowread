@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native';
+import { useTheme } from '../theme/ThemeContext';
 
 interface ActionItem {
   title: string;
@@ -27,6 +28,8 @@ export default function BottomActionSheet({
   actions,
   title,
 }: BottomActionSheetProps) {
+  const { theme } = useTheme();
+
   return (
     <Modal
       animationType="slide"
@@ -35,25 +38,26 @@ export default function BottomActionSheet({
       onRequestClose={onClose}
     >
       <TouchableOpacity
-        style={styles.overlay}
+        style={[styles.overlay, { backgroundColor: theme.colors.overlay }]}
         activeOpacity={1}
         onPress={onClose}
       >
         <View style={styles.container}>
           <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-            <View style={styles.sheet}>
+            <View style={[styles.sheet, { backgroundColor: theme.colors.surfaceVariant }]}>
               {title && (
-                <Text style={styles.title}>{title}</Text>
+                <Text style={[styles.title, { color: theme.colors.textTertiary }]}>
+                  {title}
+                </Text>
               )}
               
-              <View style={styles.actionsContainer}>
+              <View style={[styles.actionsContainer, { backgroundColor: theme.colors.surface }]}>
                 {actions.map((action, index) => (
                   <TouchableOpacity
                     key={index}
                     style={[
                       styles.actionButton,
-                      index === 0 && styles.firstActionButton,
-                      index === actions.length - 1 && styles.lastActionButton,
+                      index !== actions.length - 1 && [styles.actionButtonBorder, { borderBottomColor: theme.colors.border }],
                     ]}
                     onPress={() => {
                       action.onPress();
@@ -63,7 +67,7 @@ export default function BottomActionSheet({
                     <Text
                       style={[
                         styles.actionText,
-                        action.isDestructive && styles.destructiveText,
+                        { color: action.isDestructive ? theme.colors.error : theme.colors.primary },
                       ]}
                     >
                       {action.title}
@@ -73,10 +77,12 @@ export default function BottomActionSheet({
               </View>
 
               <TouchableOpacity
-                style={styles.cancelButton}
+                style={[styles.cancelButton, { backgroundColor: theme.colors.surface }]}
                 onPress={onClose}
               >
-                <Text style={styles.cancelText}>取消</Text>
+                <Text style={[styles.cancelText, { color: theme.colors.primary }]}>
+                  取消
+                </Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>
@@ -89,14 +95,12 @@ export default function BottomActionSheet({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
   container: {
     backgroundColor: 'transparent',
   },
   sheet: {
-    backgroundColor: '#f2f2f7',
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
     paddingBottom: Platform.OS === 'ios' ? 34 : 20,
@@ -104,13 +108,11 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 13,
-    color: '#8E8E93',
     textAlign: 'center',
     paddingVertical: 12,
     fontWeight: '600',
   },
   actionsContainer: {
-    backgroundColor: '#fff',
     marginHorizontal: 8,
     borderRadius: 12,
     overflow: 'hidden',
@@ -118,29 +120,16 @@ const styles = StyleSheet.create({
   actionButton: {
     paddingVertical: 16,
     paddingHorizontal: 20,
+  },
+  actionButtonBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E5E5EA',
-  },
-  firstActionButton: {
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-  },
-  lastActionButton: {
-    borderBottomWidth: 0,
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
   },
   actionText: {
     fontSize: 17,
-    color: '#007AFF',
     textAlign: 'center',
     fontWeight: '400',
   },
-  destructiveText: {
-    color: '#FF3B30',
-  },
   cancelButton: {
-    backgroundColor: '#fff',
     marginHorizontal: 8,
     marginTop: 8,
     borderRadius: 12,
@@ -148,7 +137,6 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     fontSize: 17,
-    color: '#007AFF',
     textAlign: 'center',
     fontWeight: '600',
   },

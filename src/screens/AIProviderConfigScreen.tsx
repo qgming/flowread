@@ -5,11 +5,13 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { loadSettings, updateAIProvider, AIProviderConfig } from '../utils/settingsStorage';
+import { useTheme } from '../theme/ThemeContext';
 
 type AIProviderConfigScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>;
-type RouteParams = { provider: 'deepseek' | 'siliconflow' | 'zhipu' };
+type RouteParams = { provider: string };
 
 export default function AIProviderConfigScreen() {
+  const { theme } = useTheme();
   const [config, setConfig] = useState<AIProviderConfig | null>(null);
   const [url, setUrl] = useState('');
   const [apiKey, setApiKey] = useState('');
@@ -23,7 +25,7 @@ export default function AIProviderConfigScreen() {
 
   useEffect(() => {
     loadSettings().then(settings => {
-      const providerConfig = settings.aiProviders[provider];
+      const providerConfig = settings.aiProviders[provider as keyof typeof settings.aiProviders];
       setConfig(providerConfig);
       setUrl(providerConfig.url);
       setApiKey(providerConfig.apiKey);
@@ -81,7 +83,7 @@ export default function AIProviderConfigScreen() {
     }
 
     try {
-      await updateAIProvider(provider, {
+      await updateAIProvider(provider as any, {
         url: url.trim(),
         apiKey: apiKey.trim(),
         model: model.trim(),
@@ -97,66 +99,83 @@ export default function AIProviderConfigScreen() {
 
   if (!config) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.loadingText}>加载中...</Text>
+      <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>加载中...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.content}>
         {/* 介绍卡片 */}
-        <View style={styles.introCard}>
-          <Text style={styles.providerName}>{config.name}</Text>
-          <Text style={styles.providerDescription}>{config.description}</Text>
+        <View style={[styles.introCard, {
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.border
+        }]}>
+          <Text style={[styles.providerName, { color: theme.colors.text }]}>{config.name}</Text>
+          <Text style={[styles.providerDescription, { color: theme.colors.textSecondary }]}>
+            {config.description}
+          </Text>
         </View>
 
         {/* 配置表单 */}
         <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>基础配置</Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>基础配置</Text>
           
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>API URL</Text>
+            <Text style={[styles.label, { color: theme.colors.text }]}>API URL</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+                color: theme.colors.text
+              }]}
               placeholder="输入API地址"
               value={url}
               onChangeText={setUrl}
-              placeholderTextColor="#8E8E93"
+              placeholderTextColor={theme.colors.textTertiary}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>API密钥</Text>
+            <Text style={[styles.label, { color: theme.colors.text }]}>API密钥</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+                color: theme.colors.text
+              }]}
               placeholder="输入您的API密钥"
               value={apiKey}
               onChangeText={setApiKey}
               secureTextEntry
-              placeholderTextColor="#8E8E93"
+              placeholderTextColor={theme.colors.textTertiary}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>模型名称</Text>
+            <Text style={[styles.label, { color: theme.colors.text }]}>模型名称</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+                color: theme.colors.text
+              }]}
               placeholder="输入模型名称"
               value={model}
               onChangeText={setModel}
-              placeholderTextColor="#8E8E93"
+              placeholderTextColor={theme.colors.textTertiary}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>温度参数</Text>
-            <Text style={styles.temperatureDescription}>
+            <Text style={[styles.label, { color: theme.colors.text }]}>温度参数</Text>
+            <Text style={[styles.temperatureDescription, { color: theme.colors.textSecondary }]}>
               控制AI回复的创造性程度：较低值更保守，较高值更有创意
             </Text>
             <View style={styles.sliderRow}>
-              <Text style={styles.sliderLabel}>保守</Text>
+              <Text style={[styles.sliderLabel, { color: theme.colors.textSecondary }]}>保守</Text>
               <Slider
                 style={styles.slider}
                 minimumValue={0}
@@ -164,33 +183,38 @@ export default function AIProviderConfigScreen() {
                 step={0.01}
                 value={temperature}
                 onValueChange={setTemperature}
-                minimumTrackTintColor="#007AFF"
-                maximumTrackTintColor="#E5E5EA"
-                thumbTintColor="#007AFF"
+                minimumTrackTintColor={theme.colors.primary}
+                maximumTrackTintColor={theme.colors.border}
+                thumbTintColor={theme.colors.primary}
               />
-              <Text style={styles.sliderLabel}>创意</Text>
+              <Text style={[styles.sliderLabel, { color: theme.colors.textSecondary }]}>创意</Text>
             </View>
-            <Text style={styles.temperatureValue}>当前值：{temperature.toFixed(2)}</Text>
+            <Text style={[styles.temperatureValue, { color: theme.colors.primary }]}>
+              当前值：{temperature.toFixed(2)}
+            </Text>
           </View>
         </View>
 
         {/* 底部按钮 */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
-            style={[styles.button, styles.testButton]} 
+            style={[styles.button, styles.testButton, {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.primary
+            }]} 
             onPress={handleTestConnection}
             disabled={isTesting}
           >
-            <Text style={[styles.buttonText, styles.testButtonText]}>
+            <Text style={[styles.buttonText, { color: theme.colors.primary }]}>
               {isTesting ? '测试中...' : '验证'}
             </Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={[styles.button, styles.saveButton]} 
+            style={[styles.button, styles.saveButton, { backgroundColor: theme.colors.primary }]} 
             onPress={handleSave}
           >
-            <Text style={[styles.buttonText, styles.saveButtonText]}>确认</Text>
+            <Text style={[styles.buttonText, { color: theme.colors.onPrimary }]}>确认</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -201,28 +225,23 @@ export default function AIProviderConfigScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
   },
   content: {
     paddingHorizontal: 16,
   },
   introCard: {
-    backgroundColor: '#fff',
     borderRadius: 16,
     padding: 20,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: '#E5E5EA',
   },
   providerName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#000',
     marginBottom: 8,
   },
   providerDescription: {
     fontSize: 16,
-    color: '#8E8E93',
     lineHeight: 22,
   },
   formSection: {
@@ -231,7 +250,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#000',
     marginBottom: 16,
   },
   inputGroup: {
@@ -240,18 +258,14 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#000',
     marginBottom: 8,
   },
   input: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#000',
     borderWidth: 1,
-    borderColor: '#E5E5EA',
   },
   buttonContainer: {
     flexDirection: 'row',
@@ -264,9 +278,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   testButton: {
-    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#007AFF',
   },
   saveButton: {
     backgroundColor: '#007AFF',
@@ -275,28 +287,19 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
   },
-  testButtonText: {
-    color: '#007AFF',
-  },
-  saveButtonText: {
-    color: '#fff',
-  },
   loadingText: {
     fontSize: 16,
-    color: '#8E8E93',
     textAlign: 'center',
     marginTop: 40,
   },
   temperatureDescription: {
     fontSize: 14,
-    color: '#8E8E93',
     marginBottom: 12,
     lineHeight: 20,
   },
   temperatureValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#007AFF',
     textAlign: 'center',
     marginTop: 4,
   },
@@ -308,7 +311,6 @@ const styles = StyleSheet.create({
   },
   sliderLabel: {
     fontSize: 14,
-    color: '#8E8E93',
     width: 40,
     textAlign: 'center',
   },

@@ -7,6 +7,7 @@ import {
   TextInput,
   TouchableOpacity,
 } from 'react-native';
+import { useTheme } from '../theme/ThemeContext';
 
 interface TagModalProps {
   visible: boolean;
@@ -25,6 +26,8 @@ export default function TagModal({
   onAddTag,
   isUpdatingTags,
 }: TagModalProps) {
+  const { theme } = useTheme();
+
   return (
     <Modal
       animationType="fade"
@@ -32,12 +35,19 @@ export default function TagModal({
       visible={visible}
       onRequestClose={onClose}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>添加标签</Text>
+      <View style={[styles.modalOverlay, { backgroundColor: theme.colors.overlay }]}>
+        <View style={[styles.modalContainer, { backgroundColor: theme.colors.modalBackground }]}>
+          <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
+            添加标签
+          </Text>
           <TextInput
-            style={styles.tagInput}
+            style={[styles.tagInput, { 
+              borderColor: theme.colors.border,
+              color: theme.colors.text,
+              backgroundColor: theme.colors.surface
+            }]}
             placeholder="请输入标签"
+            placeholderTextColor={theme.colors.textTertiary}
             value={newTag}
             onChangeText={onNewTagChange}
             maxLength={20}
@@ -47,17 +57,21 @@ export default function TagModal({
           />
           <View style={styles.modalButtons}>
             <TouchableOpacity
-              style={[styles.modalButton, styles.cancelButton]}
+              style={[styles.modalButton, styles.cancelButton, { backgroundColor: theme.colors.surfaceVariant }]}
               onPress={onClose}
             >
-              <Text style={styles.cancelButtonText}>取消</Text>
+              <Text style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}>
+                取消
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.modalButton, styles.confirmButton]}
+              style={[styles.modalButton, styles.confirmButton, { backgroundColor: theme.colors.primary }]}
               onPress={onAddTag}
               disabled={!newTag.trim()}
             >
-              <Text style={styles.confirmButtonText}>添加</Text>
+              <Text style={[styles.confirmButtonText, { color: theme.colors.onPrimary }]}>
+                添加
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -69,12 +83,10 @@ export default function TagModal({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContainer: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
     marginHorizontal: 20,
@@ -84,13 +96,11 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1a1a1a',
     marginBottom: 16,
     textAlign: 'center',
   },
   tagInput: {
     borderWidth: 1,
-    borderColor: '#ddd',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -108,19 +118,17 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   cancelButton: {
-    backgroundColor: '#f5f5f5',
+    marginRight: 8,
   },
   confirmButton: {
-    backgroundColor: '#007AFF',
+    marginLeft: 8,
   },
   cancelButtonText: {
     fontSize: 16,
-    color: '#666',
     textAlign: 'center',
   },
   confirmButtonText: {
     fontSize: 16,
-    color: '#fff',
     textAlign: 'center',
   },
 });
