@@ -29,7 +29,7 @@ export default function RootNavigator() {
       <Stack.Navigator
         screenOptions={{
           headerStyle: {
-            backgroundColor: '#f5f5f5',
+            backgroundColor: '#fff',
           },
           headerTintColor: '#007AFF',
           headerTitleStyle: {

@@ -51,8 +51,9 @@ export default function ArticleReaderScreen({ route, navigation }: Props) {
   const [showCopySheet, setShowCopySheet] = useState(false);
   const [showTranslation, setShowTranslation] = useState(true);
   const [showWordDefinition, setShowWordDefinition] = useState(false);
-  const [selectedWord, setSelectedWord] = useState('');
+ const [selectedWord, setSelectedWord] = useState('');
   const [selectedContext, setSelectedContext] = useState('');
+  const [favoriteWords, setFavoriteWords] = useState<Set<string>>(new Set());
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // 配置导航栏按钮
@@ -121,6 +122,11 @@ export default function ArticleReaderScreen({ route, navigation }: Props) {
 
       setArticle(articleData);
       setTags(articleData.tags || []);
+      
+      // 加载收藏单词
+      const favoriteWordsList = await database.getFavoriteWords();
+      const favoriteWordsSet = new Set(favoriteWordsList.map(word => word.word.toLowerCase()));
+      setFavoriteWords(favoriteWordsSet);
       
       // 初始化段落
       const parsedParagraphs = articleData.content
@@ -380,6 +386,19 @@ export default function ArticleReaderScreen({ route, navigation }: Props) {
     Alert.alert('成功', '全部内容已复制到剪贴板');
   };
 
+  // 处理收藏单词变化
+  const handleFavoriteChange = useCallback((word: string, isFavorite: boolean) => {
+    setFavoriteWords(prev => {
+      const newFavoriteWords = new Set(prev);
+      if (isFavorite) {
+        newFavoriteWords.add(word.toLowerCase());
+      } else {
+        newFavoriteWords.delete(word.toLowerCase());
+      }
+      return newFavoriteWords;
+    });
+  }, []);
+
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -418,6 +437,7 @@ export default function ArticleReaderScreen({ route, navigation }: Props) {
               error={paragraph.error}
               showTranslation={showTranslation}
               onWordPress={handleWordPress}
+              favoriteWords={favoriteWords}
             />
           ))}
         </View>
@@ -443,11 +463,12 @@ export default function ArticleReaderScreen({ route, navigation }: Props) {
         title="复制文章"
       />
 
-      <WordDefinitionSheet
+    <WordDefinitionSheet
         visible={showWordDefinition}
         onClose={() => setShowWordDefinition(false)}
         word={selectedWord}
         context={selectedContext}
+        onFavoriteChange={handleFavoriteChange}
       />
     </ScrollView>
   );
@@ -456,13 +477,13 @@ export default function ArticleReaderScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
   contentContainer: {
     paddingHorizontal: 20,

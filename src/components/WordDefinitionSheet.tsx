@@ -15,8 +15,7 @@ import database from '../database/database';
 import Markdown from 'react-native-markdown-display';
 import { loadSettings } from '../utils/settingsStorage';
 import { DeepLXTranslationService } from '../services/translation';
-import { ChatService } from '../services/chat';
-import { getFromCache, saveToCache } from '../services/wordCache';
+import AIWordAnalysis from './AIWordAnalysis';
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -25,22 +24,53 @@ interface WordDefinitionSheetProps {
   onClose: () => void;
   word: string;
   context: string;
+  onFavoriteChange?: (word: string, isFavorite: boolean) => void;
 }
 
-export default function WordDefinitionSheet({ visible, onClose, word, context }: WordDefinitionSheetProps) {
+interface HeaderActionButtonProps {
+  iconName: keyof typeof Ionicons.glyphMap;
+  onPress: () => void;
+  color?: string;
+  size?: number;
+  isActive?: boolean;
+}
+
+const HeaderActionButton: React.FC<HeaderActionButtonProps> = ({ 
+  iconName, 
+  onPress, 
+  color = '#007AFF', 
+  size = 28,
+  isActive = false 
+}) => {
+  return (
+    <TouchableOpacity 
+      style={styles.headerActionButton} 
+      onPress={onPress}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+    >
+      <Ionicons 
+        name={iconName} 
+        size={size} 
+        color={isActive ? '#FFD700' : color} 
+      />
+    </TouchableOpacity>
+  );
+};
+
+export default function WordDefinitionSheet({ visible, onClose, word, context, onFavoriteChange }: WordDefinitionSheetProps) {
   const [translation, setTranslation] = useState<string>('');
   const [definition, setDefinition] = useState<string>('');
   const [loadingTranslation, setLoadingTranslation] = useState(false);
-  const [loadingDefinition, setLoadingDefinition] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isParsed, setIsParsed] = useState(false);
+  const [hasWordData, setHasWordData] = useState(false);
   
   // 用于请求管理的引用
   const abortControllerRef = useRef<AbortController | null>(null);
-  const scrollViewRef = useRef<ScrollView>(null);
-  const requestIdRef = useRef<number>(0);
   const isMountedRef = useRef<boolean>(true);
-  const translationRef = useRef<string>('');
+
+  // AIWordAnalysis的引用
+  const aiWordAnalysisRef = useRef<any>(null);
 
   // 清理函数
   const cleanup = useCallback(() => {
@@ -59,66 +89,53 @@ export default function WordDefinitionSheet({ visible, onClose, word, context }:
     };
   }, [cleanup]);
 
-  // 当组件可见且单词变化时获取数据
+  // 当组件可见时，检查数据库并获取数据
   useEffect(() => {
     if (visible && word.trim()) {
-      // 先尝试从缓存获取
-      getFromCache(word).then(cached => {
-        if (cached && isMountedRef.current) {
-          setTranslation(cached.translation);
-          setDefinition(cached.definition);
-          setError(null);
-        } else {
-          // 没有缓存再调用API
-          fetchWordData();
-        }
-      }).catch(() => {
-        fetchWordData();
-      });
+      loadWordData();
     } else if (!visible) {
       cleanup();
       if (isMountedRef.current) {
         setTranslation('');
         setDefinition('');
-        setError(null);
+        setIsParsed(false);
+        setHasWordData(false);
       }
     }
   }, [visible, word, context, cleanup]);
 
-  // 获取单词数据
-  const fetchWordData = useCallback(async () => {
+  // 加载单词数据
+  const loadWordData = useCallback(async () => {
     if (!word.trim() || !isMountedRef.current) return;
     
-    // 不再重复检查缓存，因为外层已经检查过
-
-    // 强制取消之前的请求
-    cleanup();
-    
-    // 重置状态
-    if (isMountedRef.current) {
-      setTranslation('');
-      setDefinition('');
-      setError(null);
+    try {
+      // 先从数据库获取数据
+      const wordData = await database.getWordData(word);
+      
+      if (isMountedRef.current) {
+        if (wordData) {
+          // 数据库有数据，直接显示
+          setTranslation(wordData.translation);
+          setDefinition(wordData.definition);
+          setIsParsed(!!wordData.definition && wordData.definition.trim() !== '');
+          setHasWordData(true);
+        } else {
+          // 数据库没有数据，获取翻译
+          setHasWordData(false);
+          await fetchTranslation();
+        }
+      }
+    } catch (error) {
+      console.error('加载单词数据失败:', error);
+      if (isMountedRef.current) {
+        await fetchTranslation();
+      }
     }
-    
-    // 递增请求ID，确保旧请求被忽略
-    requestIdRef.current += 1;
-    const currentRequestId = requestIdRef.current;
-
-    // 创建新的AbortController
-    abortControllerRef.current = new AbortController();
-    const signal = abortControllerRef.current.signal;
-
-    // 并行获取翻译和定义
-    await Promise.all([
-      fetchTranslation(currentRequestId, signal),
-      fetchDefinitionContent(currentRequestId, signal)
-    ]);
-  }, [word, context, cleanup]);
+  }, [word]);
 
   // 获取翻译
-  const fetchTranslation = async (requestId: number, signal: AbortSignal) => {
-    if (!isMountedRef.current || requestId !== requestIdRef.current) return;
+  const fetchTranslation = useCallback(async () => {
+    if (!word.trim() || !isMountedRef.current) return;
     
     setLoadingTranslation(true);
     try {
@@ -129,130 +146,36 @@ export default function WordDefinitionSheet({ visible, onClose, word, context }:
         target_lang: 'ZH',
       });
       
-      if (isMountedRef.current && requestId === requestIdRef.current && !signal.aborted) {
+      if (isMountedRef.current) {
         setTranslation(deeplTranslation);
-        translationRef.current = deeplTranslation;
       }
     } catch (err) {
-      if (isMountedRef.current && requestId === requestIdRef.current && !signal.aborted) {
+      if (isMountedRef.current) {
         console.error('翻译获取失败:', err);
         setTranslation('翻译失败，请检查网络连接');
       }
     } finally {
-      if (isMountedRef.current && requestId === requestIdRef.current) {
+      if (isMountedRef.current) {
         setLoadingTranslation(false);
       }
     }
-  };
+  }, [word]);
 
-  // 获取单词定义
-  const fetchDefinitionContent = async (requestId: number, signal: AbortSignal) => {
-    if (!isMountedRef.current || requestId !== requestIdRef.current) return;
+  // 处理AI分析完成
+  const handleAnalysisComplete = useCallback((newDefinition: string) => {
+    setDefinition(newDefinition);
+    setIsParsed(true);
     
-    setLoadingDefinition(true);
-    setDefinition('');
-    setError(null);
-    
-    try {
-      const settings = await loadSettings();
-      const provider = settings.aiProviders[settings.analysis.wordAnalysisProvider];
-      
-      if (!provider?.isEnabled || !provider.apiKey) {
-        if (isMountedRef.current && requestId === requestIdRef.current && !signal.aborted) {
-          setError('AI解析服务未配置，请在设置中配置AI提供商');
-          setLoadingDefinition(false);
-        }
-        return;
-      }
-
-      if (!provider.url || !provider.model) {
-        if (isMountedRef.current && requestId === requestIdRef.current && !signal.aborted) {
-          setError('AI服务配置不完整，请检查API地址和模型名称');
-          setLoadingDefinition(false);
-        }
-        return;
-      }
-
-      const chatService = new ChatService(provider);
-      
-      const prompt = `你是一名全国知名英语老师，面向高中生教学，知识渊博，风趣幽默，深受学生喜爱，喜欢使用Emoji，请详细分析以下单词：
-
-**单词**：${word}
-**上下文**：${context}
-
-## 分析内容：
-1. **词义词性音标**
-2. **例句**（2个）
-3. **常见搭配**
-4. **同义词/反义词**
-5. **记忆技巧**`;
-
-      const stream = chatService.chatStream({
-        messages: [{ role: 'user', content: prompt }],
-        maxTokens: 2000,
-        signal,
-      });
-
-      let content = '';
-      let isCompleted = false;
-      
-      try {
-        for await (const chunk of stream) {
-          // 检查是否应该继续处理
-          if (!isMountedRef.current || 
-              requestId !== requestIdRef.current || 
-              signal.aborted) {
-            break;
-          }
-          
-          if (chunk?.content) {
-            content += chunk.content;
-            if (isMountedRef.current && requestId === requestIdRef.current) {
-              setDefinition(content);
-            }
-          }
-        }
-        isCompleted = true;
-        
-        // 只有完全完成且数据有效才保存缓存
-        if (isCompleted && translationRef.current && content) {
-          saveToCache({
-            word,
-            translation: translationRef.current,
-            definition: content,
-            timestamp: Date.now()
-          });
-        }
-      } catch (err) {
-        if (!isMountedRef.current || 
-            requestId !== requestIdRef.current || 
-            signal.aborted) {
-          return;
-        }
-        throw err;
-      }
-      
-      if (isMountedRef.current && 
-          requestId === requestIdRef.current && 
-          !signal.aborted) {
-        if (!content.trim()) {
-          setDefinition('暂无解析内容');
-        }
-      }
-      
-    } catch (err) {
-      if (isMountedRef.current && 
-          requestId === requestIdRef.current && 
-          !signal.aborted) {
-        console.error('单词解析错误:', err);
-        setError('获取AI解析失败，请检查网络连接');
-      }
-    } finally {
-      if (isMountedRef.current && requestId === requestIdRef.current) {
-        setLoadingDefinition(false);
-      }
+    // 保存到数据库
+    if (word && translation) {
+      database.updateWordData(word, translation, newDefinition);
     }
-  };
+  }, [word, translation]);
+
+  // 处理AI分析错误
+  const handleAnalysisError = useCallback((error: string) => {
+    console.error('AI分析错误:', error);
+  }, []);
 
   // 处理关闭事件
   const handleClose = useCallback(() => {
@@ -273,7 +196,7 @@ export default function WordDefinitionSheet({ visible, onClose, word, context }:
 
   // 切换收藏状态
   const toggleFavorite = useCallback(async () => {
-    if (!word || !translation || !definition) return;
+    if (!word || !translation || !isParsed) return;
     
     if (isFavorite) {
       await database.removeFavoriteWord(word);
@@ -281,22 +204,29 @@ export default function WordDefinitionSheet({ visible, onClose, word, context }:
       await database.addFavoriteWord(word, translation, definition);
     }
     setIsFavorite(!isFavorite);
-  }, [word, translation, definition, isFavorite]);
-
-  // 重试获取定义
-  const handleRetry = useCallback(() => {
-    if (word.trim()) {
-      fetchWordData();
+    
+    // 通知父组件收藏状态变化
+    if (onFavoriteChange) {
+      onFavoriteChange(word, !isFavorite);
     }
-  }, [word, fetchWordData]);
+  }, [word, translation, definition, isFavorite, isParsed, onFavoriteChange]);
 
-  useEffect(() => {
-    if (!loadingDefinition && definition) {
-      // 确保内容完全渲染
-      const timer = setTimeout(() => {}, 300);
-      return () => clearTimeout(timer);
+  // 刷新翻译和AI解析
+  const handleRefresh = useCallback(async () => {
+    if (!word.trim()) return;
+    
+    // 重新获取翻译
+    await fetchTranslation();
+    
+    // 重置AI解析状态
+    setDefinition('');
+    setIsParsed(false);
+    
+    // 调用AIWordAnalysis的刷新方法
+    if (aiWordAnalysisRef.current?.refreshAnalysis) {
+      aiWordAnalysisRef.current.refreshAnalysis();
     }
-  }, [loadingDefinition, definition]);
+  }, [word, fetchTranslation]);
 
   return (
     <Modal
@@ -310,19 +240,23 @@ export default function WordDefinitionSheet({ visible, onClose, word, context }:
           <View style={styles.contentContainer}>
             <View style={styles.header}>
               <Text style={styles.wordText}>{word}</Text>
-              <TouchableOpacity onPress={fetchWordData} style={styles.closeButton}>
-                <Ionicons name="refresh" size={24} color="#007AFF" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={toggleFavorite} style={styles.favoriteButton}>
-                <Ionicons 
-                  name={isFavorite ? "star" : "star-outline"} 
-                  size={24} 
-                  color={isFavorite ? "#FFD700" : "#007AFF"} 
+              <View style={styles.headerButtonsContainer}>
+                <HeaderActionButton 
+                  iconName="refresh" 
+                  onPress={handleRefresh} 
                 />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color="#007AFF" />
-              </TouchableOpacity>
+                <HeaderActionButton 
+                  iconName={isFavorite ? "star" : "star-outline"} 
+                  onPress={toggleFavorite}
+                  isActive={isFavorite}
+                  color={!isParsed ? '#ccc' : '#007AFF'}
+                />
+                <HeaderActionButton 
+                  iconName="close-outline" 
+                  onPress={handleClose} 
+                  size={32}
+                />
+              </View>
             </View>
 
             <View style={styles.content}>
@@ -337,45 +271,15 @@ export default function WordDefinitionSheet({ visible, onClose, word, context }:
               </View>
 
               <View style={styles.definitionSection}>
-                <View style={styles.definitionHeader}>
-                  <Text style={styles.definitionTitle}>Flow老师</Text>
-                  {loadingDefinition && (
-                    <View style={styles.loadingStatus}>
-                      <ActivityIndicator size="small" color="#007AFF" />
-                      <Text style={styles.loadingStatusText}>解析中</Text>
-                    </View>
-                  )}
-                </View>
-                
-                <View style={styles.definitionScrollContainer}>
-                  <ScrollView 
-                    ref={scrollViewRef}
-                    style={styles.definitionScroll}
-                    contentContainerStyle={styles.scrollContent}
-                    showsVerticalScrollIndicator={true}
-                    keyboardShouldPersistTaps="handled"
-                    scrollEventThrottle={16}
-                    bounces={true}
-                    overScrollMode="always"
-                    nestedScrollEnabled={true}
-                  >
-                    {error ? (
-                      <View style={styles.errorContainer}>
-                        <Ionicons name="alert-circle-outline" size={24} color="#ff3b30" />
-                        <Text style={styles.errorText}>{error}</Text>
-                        <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-                          <Text style={styles.retryButtonText}>重试</Text>
-                        </TouchableOpacity>
-                      </View>
-                    ) : (
-                      <View style={styles.markdownWrapper}>
-                        <Markdown style={markdownStyles}>
-                          {definition}
-                        </Markdown>
-                      </View>
-                    )}
-                  </ScrollView>
-                </View>
+                <AIWordAnalysis
+                  ref={aiWordAnalysisRef}
+                  word={word}
+                  context={context}
+                  translation={translation}
+                  hasWordData={hasWordData}
+                  onAnalysisComplete={handleAnalysisComplete}
+                  onError={handleAnalysisError}
+                />
               </View>
             </View>
           </View>
@@ -384,84 +288,6 @@ export default function WordDefinitionSheet({ visible, onClose, word, context }:
     </Modal>
   );
 }
-
-const markdownStyles = StyleSheet.create({
-  body: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#333',
-  },
-  heading1: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#000',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  heading2: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
-    marginTop: 14,
-    marginBottom: 6,
-  },
-  heading3: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  paragraph: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#333',
-    marginBottom: 8,
-  },
-  list_item: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#333',
-    marginBottom: 4,
-  },
-  bullet_list: {
-    marginBottom: 8,
-  },
-  ordered_list: {
-    marginBottom: 8,
-  },
-  blockquote: {
-    backgroundColor: '#f5f5f5',
-    borderLeftWidth: 4,
-    borderLeftColor: '#007AFF',
-    paddingLeft: 12,
-    paddingVertical: 8,
-    marginVertical: 8,
-    fontStyle: 'italic',
-  },
-  code_inline: {
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 4,
-    paddingVertical: 2,
-    borderRadius: 4,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: 14,
-  },
-  code_block: {
-    backgroundColor: '#f5f5f5',
-    padding: 12,
-    borderRadius: 8,
-    marginVertical: 8,
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontSize: 14,
-  },
-  strong: {
-    fontWeight: '700',
-  },
-  em: {
-    fontStyle: 'italic',
-  },
-});
 
 const styles = StyleSheet.create({
   overlay: {
@@ -495,12 +321,13 @@ const styles = StyleSheet.create({
     color: '#000',
     flex: 1,
   },
-  closeButton: {
-    padding: 4,
+  headerActionButton: {
+    padding: 8,
+    marginLeft: 12,
   },
-  favoriteButton: {
-    padding: 4,
-    marginRight: 8,
+  headerButtonsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   content: {
     flex: 1,
@@ -525,66 +352,5 @@ const styles = StyleSheet.create({
   definitionSection: {
     flex: 1,
     paddingVertical: 10,
-  },
-  definitionScrollContainer: {
-    flex: 1,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: '#E5E5EA',
-    borderRadius: 8,
-  },
-  definitionScroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 10,
-  },
-  markdownWrapper: {
-    padding: 12,
-    flex: 1,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#ff3b30',
-    textAlign: 'center',
-    marginBottom: 15,
-    lineHeight: 22,
-  },
-  retryButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  retryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  definitionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  definitionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
-  },
-  loadingStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  loadingStatusText: {
-    fontSize: 16,
-    color: '#007AFF',
-    marginLeft: 6,
   },
 });

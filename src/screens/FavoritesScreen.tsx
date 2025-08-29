@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
-  FlatList, 
   TextInput, 
   TouchableOpacity,
   ActivityIndicator,
-  Alert
+  Alert,
+  SectionList
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import database from '../database/database';
 import BottomActionSheet from '../components/BottomActionSheet';
@@ -21,40 +22,75 @@ interface FavoriteWord {
   created_at: string;
 }
 
+interface SectionData {
+  title: string;
+  data: FavoriteWord[];
+}
+
 export default function FavoritesScreen() {
   const [favoriteWords, setFavoriteWords] = useState<FavoriteWord[]>([]);
-  const [filteredWords, setFilteredWords] = useState<FavoriteWord[]>([]);
+  const [sections, setSections] = useState<SectionData[]>([]);
   const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(true);
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
 
   // 加载收藏单词
-  useEffect(() => {
-    const loadFavorites = async () => {
-      try {
-        const words = await database.getFavoriteWords();
-        setFavoriteWords(words);
-        setFilteredWords(words);
-      } catch (error) {
-        console.error('加载收藏单词失败:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadFavorites();
+  const loadFavorites = useCallback(async () => {
+    try {
+      setLoading(true);
+      const words = await database.getFavoriteWords();
+      setFavoriteWords(words);
+    } catch (error) {
+      console.error('加载收藏单词失败:', error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // 搜索过滤
+  // 初始加载
   useEffect(() => {
-    if (searchText.trim() === '') {
-      setFilteredWords(favoriteWords);
-    } else {
-      const filtered = favoriteWords.filter(word => 
+    loadFavorites();
+  }, [loadFavorites]);
+
+  // 每次进入页面时刷新数据
+  useFocusEffect(
+    useCallback(() => {
+      loadFavorites();
+    }, [loadFavorites])
+  );
+
+  // 按日期分组
+  const groupWordsByDate = (words: FavoriteWord[]): SectionData[] => {
+    const groups: { [key: string]: FavoriteWord[] } = {};
+    
+    words.forEach(word => {
+      const date = word.created_at.split(' ')[0]; // 获取日期部分
+      if (!groups[date]) {
+        groups[date] = [];
+      }
+      groups[date].push(word);
+    });
+
+    // 按日期降序排序
+    const sortedDates = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+    
+    return sortedDates.map(date => ({
+      title: date,
+      data: groups[date]
+    }));
+  };
+
+  // 搜索过滤和分组
+  useEffect(() => {
+    let filtered = favoriteWords;
+    
+    if (searchText.trim() !== '') {
+      filtered = favoriteWords.filter(word => 
         word.word.toLowerCase().includes(searchText.toLowerCase())
       );
-      setFilteredWords(filtered);
     }
+    
+    setSections(groupWordsByDate(filtered));
   }, [searchText, favoriteWords]);
 
   // 取消收藏
@@ -83,9 +119,9 @@ export default function FavoritesScreen() {
 
   // 导出单词
   const exportWords = () => {
-    const wordList = filteredWords.map(w => w.word).join('\n');
-    // 这里可以实现实际的导出逻辑
-    Alert.alert('导出成功', `已导出 ${filteredWords.length} 个单词`);
+    const allWords = sections.flatMap(section => section.data);
+    const wordList = allWords.map(w => w.word).join('\n');
+    Alert.alert('导出成功', `已导出 ${allWords.length} 个单词`);
   };
 
   const actionItems = [
@@ -95,18 +131,28 @@ export default function FavoritesScreen() {
     },
   ];
 
-  const renderWordCard = ({ item }: { item: FavoriteWord }) => (
-    <View style={styles.cardContainer}>
-      <View style={styles.wordCard}>
+  const renderWordItem = ({ item }: { item: FavoriteWord }) => (
+    <TouchableOpacity 
+      style={styles.wordItem}
+      onPress={() => {}}
+    >
+      <View style={styles.wordLeft}>
         <Text style={styles.wordText}>{item.word}</Text>
-        <TouchableOpacity 
-          onPress={() => removeFavorite(item.word)}
-          style={styles.deleteButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="close" size={20} color="#ff3b30" />
-        </TouchableOpacity>
+        <Text style={styles.translationText} numberOfLines={1}>{item.translation}</Text>
       </View>
+      <TouchableOpacity 
+        onPress={() => removeFavorite(item.word)}
+        style={styles.deleteButton}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Ionicons name="close" size={20} color="#ff3b30" />
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+
+  const renderSectionHeader = ({ section: { title } }: { section: { title: string } }) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
     </View>
   );
 
@@ -115,7 +161,9 @@ export default function FavoritesScreen() {
       {/* 顶部栏 */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.countButton}>
-          <Text style={styles.countText}>{filteredWords.length}</Text>
+          <Text style={styles.countText}>
+            {sections.reduce((total, section) => total + section.data.length, 0)}
+          </Text>
         </TouchableOpacity>
         
         <View style={styles.searchContainer}>
@@ -143,13 +191,14 @@ export default function FavoritesScreen() {
       </View>
 
       {/* 单词列表 */}
-      <FlatList
-        data={filteredWords}
+      <SectionList
+        sections={sections}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={renderWordCard}
+        renderItem={renderWordItem}
+        renderSectionHeader={renderSectionHeader}
         contentContainerStyle={[
           styles.listContent,
-          filteredWords.length === 0 && styles.emptyList
+          sections.length === 0 && styles.emptyList
         ]}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -174,20 +223,21 @@ export default function FavoritesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#f5f5f5',
+    marginTop: 5,
+    marginBottom: 8,
+    backgroundColor: '#fff',
   },
   countButton: {
     width: 36,
@@ -206,6 +256,7 @@ const styles = StyleSheet.create({
   searchContainer: {
     flex: 1,
     flexDirection: 'row',
+    height: 36,  
     alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 18,
@@ -225,9 +276,9 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    height: 36,
     fontSize: 16,
-    color: '#000',
+    color: '#000', 
+    paddingVertical: 0,
   },
   actionButton: {
     width: 36,
@@ -238,29 +289,46 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   listContent: {
-    paddingVertical: 8,
+    paddingBottom: 8,
   },
   emptyList: {
     flex: 1,
   },
-  cardContainer: {
-    marginHorizontal: 16,
-    marginVertical: 6,
+  sectionHeader: {
+    backgroundColor: '#f5f5f5',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#ddd',
   },
-  wordCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  wordItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    minHeight: 50,
+    paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#ddd',
+  },
+  wordLeft: {
+    flex: 1,
+    marginRight: 12,
   },
   wordText: {
-    fontSize: 22,
-    fontWeight: '600',
+    fontSize: 17,
+    fontWeight: '400',
     color: '#000',
+  },
+  translationText: {
+    fontSize: 14,
+    color: '#8E8E93',
+    marginTop: 2,
   },
   deleteButton: {
     padding: 4,

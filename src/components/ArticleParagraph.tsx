@@ -9,6 +9,7 @@ interface ArticleParagraphProps {
   error?: string;
   showTranslation: boolean;
   onWordPress: (word: string, context: string) => void;
+  favoriteWords?: Set<string>;
 }
 
 export default function ArticleParagraph({
@@ -18,12 +19,14 @@ export default function ArticleParagraph({
   error,
   showTranslation,
   onWordPress,
+  favoriteWords,
 }: ArticleParagraphProps) {
   return (
     <View style={styles.paragraphWrapper}>
       <PressableText
         text={original}
         onWordPress={onWordPress}
+        favoriteWords={favoriteWords}
       />
       
       {translated && (

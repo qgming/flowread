@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Switch, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
@@ -39,69 +40,92 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>    
-      <View style={styles.content}>
-        {/* 深色模式开关卡片 */}
-        <View style={styles.card}>
-          <View style={styles.cardContent}>
-            <View style={styles.cardLeft}>
-              <Text style={styles.cardTitle}>深色模式</Text>
-              <Text style={styles.cardDescription}>切换应用主题颜色</Text>
+    <View style={styles.container}>
+        {/* 基础设置 */}
+        <View style={styles.section}>
+            <View style={styles.settingItem}>
+              <View style={styles.settingLeft}>
+                <View style={styles.iconContainer}>
+                  <Ionicons name="moon-outline" size={22} color="#007AFF" />
+                </View>
+                <Text style={styles.settingTitle}>深色模式</Text>
+              </View>
+              <View style={styles.settingRight}>
+                <Switch
+                  value={isDarkMode}
+                  onValueChange={toggleDarkMode}
+                  trackColor={{ false: '#E5E5EA', true: '#007AFF' }}
+                  thumbColor={isDarkMode ? '#fff' : '#fff'}
+                />
+              </View>
             </View>
-            <Switch
-              value={isDarkMode}
-              onValueChange={toggleDarkMode}
-              trackColor={{ false: '#E5E5EA', true: '#007AFF' }}
-              thumbColor={isDarkMode ? '#fff' : '#fff'}
-            />
-          </View>
         </View>
 
-        {/* 翻译服务设置卡片 */}
-        <TouchableOpacity style={styles.card} onPress={navigateToTranslationSettings}>
-          <View style={styles.cardContent}>
-            <View style={styles.cardLeft}>
-              <Text style={styles.cardTitle}>翻译偏好</Text>
-              <Text style={styles.cardDescription}>配置翻译引擎、目标语言和提示词</Text>
-            </View>
-            <Text style={styles.arrow}>›</Text>
-          </View>
-        </TouchableOpacity>
+        {/* 翻译与解析 */}
+        <View style={styles.section}>
+            <TouchableOpacity 
+              style={styles.settingItem} 
+              onPress={navigateToTranslationSettings}
+            >
+              <View style={styles.settingLeft}>
+                <View style={styles.iconContainer}>
+                  <Ionicons name="language-outline" size={22} color="#007AFF" />
+                </View>
+                <Text style={styles.settingTitle}>翻译偏好</Text>
+              </View>
+              <View style={styles.settingRight}>
+                <Ionicons name="chevron-forward" size={22} color="#c7c7cc" />
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.settingItem} 
+              onPress={navigateToAnalysisSettings}
+            >
+              <View style={styles.settingLeft}>
+                <View style={styles.iconContainer}>
+                  <Ionicons name="search-outline" size={22} color="#007AFF" />
+                </View>
+                <Text style={styles.settingTitle}>解析服务</Text>
+              </View>
+              <View style={styles.settingRight}>
+                <Ionicons name="chevron-forward" size={22} color="#c7c7cc" />
+              </View>
+            </TouchableOpacity>
+        </View>
 
-        {/* 解析服务设置卡片 */}
-        <TouchableOpacity style={styles.card} onPress={navigateToAnalysisSettings}>
-          <View style={styles.cardContent}>
-            <View style={styles.cardLeft}>
-              <Text style={styles.cardTitle}>解析服务</Text>
-              <Text style={styles.cardDescription}>配置单词和文章解析的AI模型</Text>
-            </View>
-            <Text style={styles.arrow}>›</Text>
-          </View>
-        </TouchableOpacity>
-
-        {/* AI设置卡片 */}
-        <TouchableOpacity style={styles.card} onPress={navigateToAISettings}>
-          <View style={styles.cardContent}>
-            <View style={styles.cardLeft}>
-              <Text style={styles.cardTitle}>AI设置</Text>
-              <Text style={styles.cardDescription}>自定义大模型地址与密钥</Text>
-            </View>
-            <Text style={styles.arrow}>›</Text>
-          </View>
-        </TouchableOpacity>
-
-        {/* DeepLX设置卡片 */}
-        <TouchableOpacity style={styles.card} onPress={navigateToDeepLXSettings}>
-          <View style={styles.cardContent}>
-            <View style={styles.cardLeft}>
-              <Text style={styles.cardTitle}>DeepL设置</Text>
-              <Text style={styles.cardDescription}>配置DeepL、DeepLX翻译接口</Text>
-            </View>
-            <Text style={styles.arrow}>›</Text>
-          </View>
-        </TouchableOpacity>
-
-      </View>
+        {/* AI与翻译服务 */}
+        <View style={styles.section}>
+            <TouchableOpacity 
+              style={styles.settingItem} 
+              onPress={navigateToAISettings}
+            >
+              <View style={styles.settingLeft}>
+                <View style={styles.iconContainer}>
+                  <Ionicons name="hardware-chip-outline" size={22} color="#007AFF" />
+                </View>
+                <Text style={styles.settingTitle}>AI设置</Text>
+              </View>
+              <View style={styles.settingRight}>
+                <Ionicons name="chevron-forward" size={22} color="#c7c7cc" />
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.settingItem} 
+              onPress={navigateToDeepLXSettings}
+            >
+              <View style={styles.settingLeft}>
+                <View style={styles.iconContainer}>
+                  <Ionicons name="settings-outline" size={22} color="#007AFF" />
+                </View>
+                <Text style={styles.settingTitle}>DeepL设置</Text>
+              </View>
+              <View style={styles.settingRight}>
+                <Ionicons name="chevron-forward" size={22} color="#c7c7cc" />
+              </View>
+            </TouchableOpacity>
+        </View>
     </View>
   );
 }
@@ -109,42 +133,40 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  content: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
-  },
-  card: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#E5E5EA',
   },
-  cardContent: {
+  section: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#ddd',
+    paddingVertical: 8,
+  },
+  settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    minHeight: 50,
+    paddingVertical: 8,
   },
-  cardLeft: {
+  settingLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
   },
-  cardTitle: {
+  iconContainer: {
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  settingTitle: {
     fontSize: 17,
-    fontWeight: '600',
+    fontWeight: '400',
     color: '#000',
-    marginBottom: 4,
   },
-  cardDescription: {
-    fontSize: 14,
-    color: '#8E8E93',
-  },
-  arrow: {
-    fontSize: 24,
-    color: '#C7C7CC',
-    fontWeight: '300',
+  settingRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });

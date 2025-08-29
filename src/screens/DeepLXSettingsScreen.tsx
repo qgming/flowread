@@ -97,7 +97,7 @@ export default function DeepLXSettingsScreen() {
               style={styles.input}
               value={config.url}
               onChangeText={(text) => handleInputChange('url', text)}
-              placeholder="https://deeplx.vercel.app/translate"
+              placeholder="https://dplx.xi-xu.me/translate"
               placeholderTextColor="#8E8E93"
             />
           </View>
@@ -156,7 +156,7 @@ export default function DeepLXSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
   content: {
     paddingHorizontal: 16,

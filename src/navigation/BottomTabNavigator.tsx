@@ -14,7 +14,7 @@ export default function BottomTabNavigator() {
         tabBarActiveTintColor: '#007AFF',
         tabBarInactiveTintColor: '#8E8E93',
         tabBarStyle: {
-          backgroundColor: '#F6F6F6',
+          backgroundColor: '#fff',
           borderTopWidth: 0.5,
           borderTopColor: '#C6C6C8',
           height: 83,
@@ -26,7 +26,7 @@ export default function BottomTabNavigator() {
           fontWeight: '500',
         },
         headerStyle: {
-          backgroundColor: '#F5F5F5',
+          backgroundColor: '#fff',
           elevation: 0,
           shadowOpacity: 0,
           shadowOffset: {
@@ -34,11 +34,11 @@ export default function BottomTabNavigator() {
             height: 0,
           },
           shadowRadius: 0,
-          height: 70,
+          height: 80,
         },
         headerTitleStyle: {
-          fontSize: 18,
-          fontWeight: '600',
+          fontSize: 22,
+          fontWeight: '900',
         },
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap;

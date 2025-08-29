@@ -7,6 +7,7 @@ interface PressableTextProps {
   wordStyle?: (word: string, index: number) => any;
   selectedWord?: string;
   highlightColor?: string;
+  favoriteWords?: Set<string>;
 }
 
 interface Token {
@@ -19,7 +20,8 @@ interface Token {
 export default function PressableText({ 
   text, 
   onWordPress, 
-  wordStyle 
+  wordStyle,
+  favoriteWords
 }: PressableTextProps) {
   // 使用精确的正则表达式进行英文分词
   const tokens = useMemo(() => {
@@ -63,7 +65,10 @@ export default function PressableText({
       }
 
       if (token.type === 'word') {
+        const isFavorite = favoriteWords && favoriteWords.has(token.text.toLowerCase());
         const customStyle = wordStyle ? wordStyle(token.text, index) : null;
+        const favoriteStyle = isFavorite ? styles.favoriteWord : null;
+        
         return (
           <TouchableOpacity
             key={`word-${index}`}
@@ -71,7 +76,7 @@ export default function PressableText({
             style={[styles.wordTouchable, customStyle]}
             activeOpacity={0.7}
           >
-            <Text style={[styles.wordText, customStyle]}>
+            <Text style={[styles.wordText, customStyle, favoriteStyle]}>
               {token.text}
             </Text>
           </TouchableOpacity>
@@ -113,6 +118,12 @@ const styles = StyleSheet.create({
     lineHeight: 32,
     color: '#000',
     textAlign: 'auto',
+  },
+  favoriteWord: {
+    backgroundColor: '#FFD700',
+    borderRadius: 9,
+    paddingHorizontal: 5,
+    marginVertical:2,
   },
   whitespace: {
     fontSize: 18,

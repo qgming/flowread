@@ -187,6 +187,33 @@ class Database {
     );
     return !!result;
   }
+
+  // 新增：获取单词的翻译和定义
+  async getWordData(word: string): Promise<{ translation: string; definition: string } | null> {
+    if (!this.db) await this.init();
+    
+    const result = await this.db!.getFirstAsync(
+      'SELECT translation, definition FROM favorite_words WHERE word = ?',
+      [word]
+    );
+    
+    if (!result) return null;
+    
+    return {
+      translation: (result as any).translation,
+      definition: (result as any).definition
+    };
+  }
+
+  // 新增：更新单词的翻译和定义
+  async updateWordData(word: string, translation: string, definition: string): Promise<void> {
+    if (!this.db) await this.init();
+    
+    await this.db!.runAsync(
+      'INSERT OR REPLACE INTO favorite_words (word, translation, definition) VALUES (?, ?, ?)',
+      [word, translation, definition]
+    );
+  }
 }
 
 export default new Database();

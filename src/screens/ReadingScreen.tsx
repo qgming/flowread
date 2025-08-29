@@ -25,6 +25,7 @@ export default function ReadingScreen({ navigation }: any) {
   const [content, setContent] = useState('');
   const [tags, setTags] = useState('');
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -68,13 +69,24 @@ export default function ReadingScreen({ navigation }: any) {
 
   // 筛选文章
   const filteredArticles = useMemo(() => {
-    if (selectedTags.size === 0) {
-      return articles;
+    let filtered = articles;
+    
+    // 搜索标题
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(article => 
+        article.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
     }
-    return articles.filter(article => 
-      Array.from(selectedTags).every(tag => article.tags.includes(tag))
-    );
-  }, [articles, selectedTags]);
+    
+    // 标签筛选
+    if (selectedTags.size > 0) {
+      filtered = filtered.filter(article => 
+        Array.from(selectedTags).every(tag => article.tags.includes(tag))
+      );
+    }
+    
+    return filtered;
+  }, [articles, selectedTags, searchQuery]);
 
   const handleImportFile = async () => {
     try {
@@ -186,8 +198,25 @@ export default function ReadingScreen({ navigation }: any) {
     },
   ];
 
-  return (
+    return (
     <View style={styles.container}>
+      {/* 搜索框 */}
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="搜索文章标题..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          returnKeyType="search"
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+            <Ionicons name="close-circle" size={20} color="#999" />
+          </TouchableOpacity>
+        )}
+      </View>
+
       {/* 标签筛选区域 */}
       {allTags.length > 0 && (
         <View style={styles.tagsContainer}>
@@ -308,23 +337,44 @@ export default function ReadingScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 5,
+    marginBottom: 8,
     backgroundColor: '#f5f5f5',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 40,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    paddingVertical: 8,
+  },
+  clearButton: {
+    padding: 4,
   },
   tagsContainer: {
-    paddingVertical: 12,
+    paddingVertical: 5,
     paddingHorizontal: 16,
   },
   tagsScroll: {
     flexDirection: 'row',
   },
   tag: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
     marginRight: 8,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
   },
   tagSelected: {
     backgroundColor: '#007AFF',
