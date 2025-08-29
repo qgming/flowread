@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     textAlign: 'auto',
   },
   favoriteWord: {
-    backgroundColor: '#FFD700',
+    backgroundColor: '#FFFDE7',
     borderRadius: 9,
     paddingHorizontal: 5,
     marginVertical:2,

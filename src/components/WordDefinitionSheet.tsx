@@ -230,7 +230,7 @@ export default function WordDefinitionSheet({ visible, onClose, word, context, o
 
   return (
     <Modal
-      animationType="none"
+      animationType="slide"
       transparent
       visible={visible}
       onRequestClose={handleClose}

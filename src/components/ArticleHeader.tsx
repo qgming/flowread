@@ -9,6 +9,7 @@ interface ArticleHeaderProps {
   tags: string[];
   onRemoveTag: (tag: string) => void;
   isUpdatingTags: boolean;
+  wordCount: number;
 }
 
 export default function ArticleHeader({
@@ -19,6 +20,7 @@ export default function ArticleHeader({
   tags,
   onRemoveTag,
   isUpdatingTags,
+  wordCount,
 }: ArticleHeaderProps) {
   return (
     <View>
@@ -31,6 +33,13 @@ export default function ArticleHeader({
               {new Date(createdAt).toLocaleDateString('zh-CN')}
             </Text>
           </View>
+          
+          <View style={styles.wordCountCapsule}>
+            <Text style={styles.wordCountText}>
+              {wordCount} 词
+            </Text>
+          </View>
+          
           {translationLanguage && (
             <View style={[styles.dateCapsule, styles.translationCapsule]}>
               <Text style={styles.translationText}>
@@ -72,14 +81,24 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   dateCapsule: {
-    backgroundColor: '#e0e0e0',
+    backgroundColor: '#FAFAFA',
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   dateText: {
     fontSize: 12,
-    color: '#555555',
+    color: '#424242',
+  },
+  wordCountCapsule: {
+    backgroundColor: '#fff3e0',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  wordCountText: {
+    fontSize: 12,
+    color: '#e65100',
   },
   translationCapsule: {
     backgroundColor: '#e8f5e8',

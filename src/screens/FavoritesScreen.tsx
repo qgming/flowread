@@ -7,12 +7,16 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  SectionList
+  SectionList,
+  Clipboard
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import database from '../database/database';
 import BottomActionSheet from '../components/BottomActionSheet';
+import WordDetailSheet from '../components/WordDetailSheet';
+import { RootStackParamList } from '../navigation/RootNavigator';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 interface FavoriteWord {
   id: number;
@@ -28,11 +32,14 @@ interface SectionData {
 }
 
 export default function FavoritesScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [favoriteWords, setFavoriteWords] = useState<FavoriteWord[]>([]);
   const [sections, setSections] = useState<SectionData[]>([]);
   const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(true);
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
+  const [wordDetailVisible, setWordDetailVisible] = useState(false);
+  const [selectedWord, setSelectedWord] = useState<FavoriteWord | null>(null);
 
   // 加载收藏单词
   const loadFavorites = useCallback(async () => {
@@ -117,28 +124,51 @@ export default function FavoritesScreen() {
     );
   };
 
-  // 导出单词
-  const exportWords = () => {
-    const allWords = sections.flatMap(section => section.data);
-    const wordList = allWords.map(w => w.word).join('\n');
-    Alert.alert('导出成功', `已导出 ${allWords.length} 个单词`);
+  // 复制所有单词到剪贴板
+  const copyAllWords = async () => {
+    try {
+      const allWords = sections.flatMap(section => section.data);
+      const wordList = allWords.map(w => w.word).join('\n');
+      
+      if (wordList.length === 0) {
+        Alert.alert('提示', '暂无收藏的单词');
+        return;
+      }
+      
+      await Clipboard.setString(wordList);
+      Alert.alert('复制成功', `已复制 ${allWords.length} 个单词到剪贴板`);
+    } catch (error) {
+      console.error('复制失败:', error);
+      Alert.alert('复制失败', '无法复制到剪贴板');
+    }
+  };
+
+  // 打开单词详情
+  const openWordDetail = (word: FavoriteWord) => {
+    setSelectedWord(word);
+    setWordDetailVisible(true);
+  };
+
+  // 关闭单词详情
+  const closeWordDetail = () => {
+    setWordDetailVisible(false);
+    setSelectedWord(null);
   };
 
   const actionItems = [
     {
-      title: '导出单词',
-      onPress: exportWords,
+      title: '复制所有单词',
+      onPress: copyAllWords,
     },
   ];
 
   const renderWordItem = ({ item }: { item: FavoriteWord }) => (
     <TouchableOpacity 
       style={styles.wordItem}
-      onPress={() => {}}
+      onPress={() => openWordDetail(item)}
     >
       <View style={styles.wordLeft}>
         <Text style={styles.wordText}>{item.word}</Text>
-        <Text style={styles.translationText} numberOfLines={1}>{item.translation}</Text>
       </View>
       <TouchableOpacity 
         onPress={() => removeFavorite(item.word)}
@@ -216,6 +246,36 @@ export default function FavoritesScreen() {
         actions={actionItems}
         title="更多操作"
       />
+
+      {/* 单词详情抽屉 */}
+      {selectedWord && (
+        <WordDetailSheet
+          visible={wordDetailVisible}
+          onClose={closeWordDetail}
+          word={selectedWord.word}
+          translation={selectedWord.translation}
+          definition={selectedWord.definition}
+        />
+      )}
+
+      {/* 悬浮胶囊按钮 */}
+      <View style={styles.floatingButtonContainer}>
+        <View style={styles.capsuleButton}>
+          <TouchableOpacity 
+            style={styles.buttonHalf}
+            onPress={() => navigation.navigate('ImmersiveReading')}
+          >
+            <Text style={styles.buttonText}>沉浸刷词</Text>
+          </TouchableOpacity>
+          <View style={styles.divider} />
+          <TouchableOpacity 
+            style={styles.buttonHalf}
+            onPress={() => navigation.navigate('WordMemory')}
+          >
+            <Text style={styles.buttonText}>单词记忆</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 }
@@ -312,23 +372,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     minHeight: 50,
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#ddd',
   },
   wordLeft: {
     flex: 1,
     marginRight: 12,
+    justifyContent: 'center',
   },
   wordText: {
     fontSize: 17,
     fontWeight: '400',
     color: '#000',
-  },
-  translationText: {
-    fontSize: 14,
-    color: '#8E8E93',
-    marginTop: 2,
   },
   deleteButton: {
     padding: 4,
@@ -350,5 +406,47 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#999',
     textAlign: 'center',
+  },
+ floatingButtonContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  capsuleButton: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 50,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    width: '60%',
+    maxWidth: 500,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  buttonHalf: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonText: {
+    color: '#007AFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  divider: {
+    width: 1,
+    height: '100%',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
   },
 });

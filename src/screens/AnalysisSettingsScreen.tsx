@@ -48,6 +48,7 @@ export default function AnalysisSettingsScreen() {
   }
 
   const providerOptions = [
+    { label: 'FlowAI', value: 'flowai' },
     { label: 'DeepSeek', value: 'deepseek' },
     { label: '硅基流动', value: 'siliconflow' },
     { label: '智谱AI', value: 'zhipu' },

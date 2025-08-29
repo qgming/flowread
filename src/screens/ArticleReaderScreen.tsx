@@ -410,14 +410,28 @@ export default function ArticleReaderScreen({ route, navigation }: Props) {
 
   if (!article) return null;
 
-  const allTranslated = paragraphs.every(p => p.translated);
+ const allTranslated = paragraphs.every(p => p.translated);
   const translationStatus = allTranslated ? '已翻译' : 
     paragraphs.some(p => p.translated) ? '部分翻译' : '未翻译';
+  
+  // 计算文章单词数量
+const wordCount = article.content
+  .replace(/[.,!?;:'"()\[\]{}\-—–，。！？；：'""（）【】《》]/g, ' ')
+  .split(/\s+/)
+  .filter(word => word.trim().length > 0)
+  .reduce((count, word) => {
+    // 处理中英文混合
+    const chineseChars = word.match(/[\u4e00-\u9fa5]/g) || [];
+    const englishWords = word.match(/[a-zA-Z]+/g) || [];
+    const numbers = word.match(/\d+/g) || [];
+    
+    return count + chineseChars.length + englishWords.length + numbers.length;
+  }, 0);
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.contentContainer}>
-        <ArticleHeader
+         <ArticleHeader
           title={article.title}
           createdAt={article.created_at}
           translationStatus={translationStatus}
@@ -425,6 +439,7 @@ export default function ArticleReaderScreen({ route, navigation }: Props) {
           tags={tags}
           onRemoveTag={handleRemoveTag}
           isUpdatingTags={isUpdatingTags}
+          wordCount={wordCount}
         />
 
         <View>

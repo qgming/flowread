@@ -62,6 +62,7 @@ export default function TranslationSettingsScreen() {
 
   const engineOptions = [
     { label: 'DeepLX', value: 'deeplx' },
+    { label: 'FlowAI', value: 'flowai' },
     { label: 'DeepSeek', value: 'deepseek' },
     { label: '硅基流动', value: 'siliconflow' },
     { label: '智谱AI', value: 'zhipu' },
@@ -194,7 +195,7 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     color: '#000',
-    minHeight: 100,
+    minHeight: 200,
   },
   saveButton: {
     backgroundColor: '#007AFF',

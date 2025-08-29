@@ -9,6 +9,8 @@ import AIProviderConfigScreen from '../screens/AIProviderConfigScreen';
 import DeepLXSettingsScreen from '../screens/DeepLXSettingsScreen';
 import TranslationSettingsScreen from '../screens/TranslationSettingsScreen';
 import AnalysisSettingsScreen from '../screens/AnalysisSettingsScreen';
+import ImmersiveReadingScreen from '../screens/ImmersiveReadingScreen';
+import WordMemoryScreen from '../screens/WordMemoryScreen';
 import { Article } from '../database/database';
 
 export type RootStackParamList = {
@@ -19,6 +21,8 @@ export type RootStackParamList = {
   DeepLXSettings: undefined;
   TranslationSettings: undefined;
   AnalysisSettings: undefined;
+  ImmersiveReading: undefined;
+  WordMemory: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -129,6 +133,24 @@ export default function RootNavigator() {
                 marginLeft: -25 
               }}>解析服务</Text>
             ),
+            headerBackTitle: '返回',
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen 
+          name="ImmersiveReading" 
+          component={ImmersiveReadingScreen as any}
+          options={{
+            headerTitle: '',
+            headerBackTitle: '返回',
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen 
+          name="WordMemory" 
+          component={WordMemoryScreen as any}
+          options={{
+            headerTitle: '',
             headerBackTitle: '返回',
             headerShadowVisible: false,
           }}
