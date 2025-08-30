@@ -77,6 +77,11 @@ export default function SpeechSettingsScreen() {
     { label: '很快', value: '0.9' },
   ];
 
+  const audioSourceOptions = [
+    { label: 'API音频 (推荐)', value: 'api' },
+    { label: '系统TTS', value: 'system' },
+  ];
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.content}>
@@ -109,6 +114,27 @@ export default function SpeechSettingsScreen() {
               thumbColor={tempSettings.autoSpeak ? theme.colors.onPrimary : theme.colors.surface}
             />
           </View>
+        </View>
+
+        {/* 音频来源设置 */}
+        <View style={[styles.section, { 
+          backgroundColor: theme.colors.surface,
+          borderColor: theme.colors.border 
+        }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>音频来源</Text>
+          <ModalSelector
+            options={audioSourceOptions}
+            selectedValue={tempSettings.audioSource}
+            onValueChange={(value: string) =>
+              setTempSettings({ ...tempSettings, audioSource: value as 'api' | 'system' })
+            }
+            title="选择音频来源"
+          />
+          <Text style={[styles.settingDescription, { color: theme.colors.textSecondary, marginTop: 8 }]}>
+            {tempSettings.audioSource === 'api' 
+              ? '使用Dictionary API提供的音频，音质更好' 
+              : '使用系统TTS引擎朗读'}
+          </Text>
         </View>
 
         {/* 朗读语言设置 */}

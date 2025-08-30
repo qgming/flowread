@@ -1,37 +1,61 @@
-import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, StyleSheet } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 import { ThemeProvider } from './src/theme/ThemeContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import database from './src/database/database';
 
+// 防止启动画面自动隐藏
+SplashScreen.preventAutoHideAsync();
+
 export default function App() {
-  const [isDbReady, setIsDbReady] = useState(false);
+  const [appIsReady, setAppIsReady] = useState(false);
 
   useEffect(() => {
-    const initializeDatabase = async () => {
+    async function prepare() {
       try {
+        // 初始化数据库
         await database.init();
-        setIsDbReady(true);
-      } catch (error) {
-        console.error('数据库初始化失败:', error);
-        // 可以在这里添加错误处理UI
+        
+        // 可以在这里添加其他初始化任务
+        // 如：加载字体、获取用户设置等
+        
+        // 模拟额外加载时间，确保启动画面显示足够长
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+      } catch (e) {
+        console.warn('应用初始化失败:', e);
+      } finally {
+        // 告诉应用已经准备好
+        setAppIsReady(true);
       }
-    };
+    }
 
-    initializeDatabase();
+    prepare();
   }, []);
 
-  if (!isDbReady) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+  const onLayoutRootView = useCallback(async () => {
+    if (appIsReady) {
+      // 应用准备好后，隐藏启动画面
+      await SplashScreen.hideAsync();
+    }
+  }, [appIsReady]);
+
+  if (!appIsReady) {
+    return null;
   }
 
   return (
-    <ThemeProvider>
-      <RootNavigator />
-    </ThemeProvider>
+    <View style={styles.container} onLayout={onLayoutRootView}>
+      <ThemeProvider>
+        <RootNavigator />
+      </ThemeProvider>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});

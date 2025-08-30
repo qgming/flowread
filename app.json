@@ -10,7 +10,12 @@
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#ffffff",
+      "dark": {
+        "image": "./assets/images/splash-icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#000000"
+      }
     },
     "ios": {
       "supportsTablet": true,
@@ -18,53 +23,11 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/splash-icon.png",
+        "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.qgming.flowread",
-      "intentFilters": [
-        {
-          "action": "android.intent.action.SEND",
-          "category": [
-            "android.intent.category.DEFAULT"
-          ],
-          "data": [
-            {
-              "mimeType": "text/plain"
-            },
-            {
-              "mimeType": "text/*"
-            }
-          ]
-        },
-        {
-          "action": "android.intent.action.SEND",
-          "category": [
-            "android.intent.category.DEFAULT"
-          ],
-          "data": [
-            {
-              "mimeType": "*/*",
-              "scheme": "content",
-              "pathPattern": ".*\\.txt"
-            }
-          ]
-        },
-        {
-          "action": "android.intent.action.VIEW",
-          "category": [
-            "android.intent.category.DEFAULT",
-            "android.intent.category.BROWSABLE"
-          ],
-          "data": [
-            {
-              "scheme": "flowread",
-              "host": "*"
-            }
-          ]
-        }
-      ]
+      "package": "com.qgming.flowread"
     },
     "web": {
       "favicon": "./assets/images/splash-icon.png"
@@ -75,6 +38,9 @@
       }
     },
     "owner": "qgming",
-    "scheme": "flowread"
+    "scheme": "flowread",
+    "plugins": [
+      "expo-font"
+    ]
   }
 }

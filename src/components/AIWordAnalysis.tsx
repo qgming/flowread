@@ -120,17 +120,17 @@ const AIWordAnalysis = forwardRef<AIWordAnalysisRef, AIWordAnalysisProps>(({
 
       const chatService = new ChatService(provider);
       
-      const prompt = `你是一名全国知名英语老师，面向高中生教学，知识渊博，风趣幽默，深受学生喜爱，喜欢使用Emoji，请详细分析以下单词：
+      const prompt = `你是一名全国知名英语老师Flow老师，通熟易懂，知识渊博，风趣幽默，深受学生喜爱，请给学生讲解以下单词：
 
 **单词**：${word}
 **上下文**：${context}
 
 ## 分析内容：
-1. **词义词性音标**
+1. **释义**
 2. **例句**（2个）
 3. **常见搭配**
-4. **同义词/反义词**
-5. **记忆技巧**`;
+4. **记忆技巧**
+5. **在本文中的用处**`;
 
       // 递增请求ID，确保旧请求被忽略
       requestIdRef.current += 1;

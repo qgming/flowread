@@ -16,9 +16,11 @@ import Markdown from 'react-native-markdown-display';
 import { loadSettings } from '../utils/settingsStorage';
 import { DeepLXTranslationService } from '../services/translation';
 import AIWordAnalysis from './AIWordAnalysis';
+import WordDictionaryInfo from './WordDictionaryInfo';
 import { useTheme } from '../theme/ThemeContext';
 import { speakWord } from '../services/speech';
 import { eventBus, EVENTS } from '../utils/eventBus';
+import { dictionaryService } from '../services/dictionary';
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -36,6 +38,11 @@ interface HeaderActionButtonProps {
   color?: string;
   size?: number;
   isActive?: boolean;
+}
+
+interface WordDictionaryInfoRef {
+  getTranslation: () => string;
+  getWordDetails: () => any;
 }
 
 const HeaderActionButton: React.FC<HeaderActionButtonProps> = ({ 
@@ -64,12 +71,12 @@ const HeaderActionButton: React.FC<HeaderActionButtonProps> = ({
 
 export default function WordDefinitionSheet({ visible, onClose, word, context, onFavoriteChange }: WordDefinitionSheetProps) {
   const { theme } = useTheme();
-  const [translation, setTranslation] = useState<string>('');
-  const [definition, setDefinition] = useState<string>('');
-  const [loadingTranslation, setLoadingTranslation] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isParsed, setIsParsed] = useState(false);
   const [hasWordData, setHasWordData] = useState(false);
+  const [definition, setDefinition] = useState<string>('');
+  const [translation, setTranslation] = useState<string>('');
+  const [wordDetails, setWordDetails] = useState<any>(null);
   
   // 用于请求管理的引用
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -77,6 +84,9 @@ export default function WordDefinitionSheet({ visible, onClose, word, context, o
 
   // AIWordAnalysis的引用
   const aiWordAnalysisRef = useRef<any>(null);
+
+  // WordDictionaryInfo的引用
+  const wordDictionaryInfoRef = useRef<any>(null);
 
   // 清理函数
   const cleanup = useCallback(() => {
@@ -120,10 +130,10 @@ export default function WordDefinitionSheet({ visible, onClose, word, context, o
     } else if (!visible) {
       cleanup();
       if (isMountedRef.current) {
-        setTranslation('');
-        setDefinition('');
         setIsParsed(false);
         setHasWordData(false);
+        setTranslation('');
+        setWordDetails(null);
       }
     }
   }, [visible, word, context, cleanup]);
@@ -139,48 +149,20 @@ export default function WordDefinitionSheet({ visible, onClose, word, context, o
       if (isMountedRef.current) {
         if (wordData) {
           // 数据库有数据，直接显示
-          setTranslation(wordData.translation);
-          setDefinition(wordData.definition);
           setIsParsed(!!wordData.definition && wordData.definition.trim() !== '');
           setHasWordData(true);
+          if (wordData.translation) {
+            setTranslation(wordData.translation);
+          }
         } else {
-          // 数据库没有数据，获取翻译
+          // 数据库没有数据
           setHasWordData(false);
-          await fetchTranslation();
         }
       }
     } catch (error) {
       console.error('加载单词数据失败:', error);
       if (isMountedRef.current) {
-        await fetchTranslation();
-      }
-    }
-  }, [word]);
-
-  // 获取翻译
-  const fetchTranslation = useCallback(async () => {
-    if (!word.trim() || !isMountedRef.current) return;
-    
-    setLoadingTranslation(true);
-    try {
-      const settings = await loadSettings();
-      const translationService = new DeepLXTranslationService(settings.deeplx);
-      const deeplTranslation = await translationService.translate({
-        text: word,
-        target_lang: 'ZH',
-      });
-      
-      if (isMountedRef.current) {
-        setTranslation(deeplTranslation);
-      }
-    } catch (err) {
-      if (isMountedRef.current) {
-        console.error('翻译获取失败:', err);
-        setTranslation('翻译失败，请检查网络连接');
-      }
-    } finally {
-      if (isMountedRef.current) {
-        setLoadingTranslation(false);
+        setHasWordData(false);
       }
     }
   }, [word]);
@@ -189,12 +171,7 @@ export default function WordDefinitionSheet({ visible, onClose, word, context, o
   const handleAnalysisComplete = useCallback((newDefinition: string) => {
     setDefinition(newDefinition);
     setIsParsed(true);
-    
-    // 保存到数据库
-    if (word && translation) {
-      database.updateWordData(word, translation, newDefinition);
-    }
-  }, [word, translation]);
+  }, []);
 
   // 处理AI分析错误
   const handleAnalysisError = useCallback((error: string) => {
@@ -218,14 +195,23 @@ export default function WordDefinitionSheet({ visible, onClose, word, context, o
     checkFavorite();
   }, [word]);
 
+  // 处理翻译和单词详情的更新
+  const handleWordDataUpdate = useCallback((data: { translation: string; wordDetails: any }) => {
+    setTranslation(data.translation);
+    setWordDetails(data.wordDetails);
+  }, []);
+
   // 切换收藏状态
   const toggleFavorite = useCallback(async () => {
-    if (!word || !translation || !isParsed) return;
+    if (!word) return;
     
     if (isFavorite) {
       await database.removeFavoriteWord(word);
     } else {
-      await database.addFavoriteWord(word, translation, definition);
+      // 保存到数据库，包含翻译和AI解析
+      const currentTranslation = translation || wordDetails?.translation || '';
+      const currentDefinition = definition || '';
+      await database.updateWordData(word, currentTranslation, currentDefinition);
     }
     setIsFavorite(!isFavorite);
     
@@ -236,24 +222,7 @@ export default function WordDefinitionSheet({ visible, onClose, word, context, o
     if (onFavoriteChange) {
       onFavoriteChange(word, !isFavorite);
     }
-  }, [word, translation, definition, isFavorite, isParsed, onFavoriteChange]);
-
-  // 刷新翻译和AI解析
-  const handleRefresh = useCallback(async () => {
-    if (!word.trim()) return;
-    
-    // 重新获取翻译
-    await fetchTranslation();
-    
-    // 重置AI解析状态
-    setDefinition('');
-    setIsParsed(false);
-    
-    // 调用AIWordAnalysis的刷新方法
-    if (aiWordAnalysisRef.current?.refreshAnalysis) {
-      aiWordAnalysisRef.current.refreshAnalysis();
-    }
-  }, [word, fetchTranslation]);
+  }, [word, definition, translation, wordDetails, isFavorite, onFavoriteChange]);
 
   // 处理朗读
   const handleSpeak = async () => {
@@ -263,6 +232,30 @@ export default function WordDefinitionSheet({ visible, onClose, word, context, o
       console.error('朗读失败:', error);
     }
   };
+
+  // 处理音频播放
+  const handleAudioPress = async (audioUrl: string) => {
+    try {
+      console.log('播放音频:', audioUrl);
+      // 这里可以播放网络音频，现在由WordDictionaryInfo处理
+    } catch (error) {
+      console.error('播放音频失败:', error);
+    }
+  };
+
+  // 刷新AI解析
+  const handleRefresh = useCallback(async () => {
+    if (!word.trim()) return;
+    
+    // 重置AI解析状态
+    setDefinition('');
+    setIsParsed(false);
+    
+    // 调用AIWordAnalysis的刷新方法
+    if (aiWordAnalysisRef.current?.refreshAnalysis) {
+      aiWordAnalysisRef.current.refreshAnalysis();
+    }
+  }, [word]);
 
   return (
     <Modal
@@ -275,7 +268,6 @@ export default function WordDefinitionSheet({ visible, onClose, word, context, o
         <View style={[styles.sheet, { backgroundColor: theme.colors.modalBackground }]}>
           <View style={styles.contentContainer}>
             <View style={[styles.header, { borderBottomColor: theme.colors.divider }]}>
-              <Text style={[styles.wordText, { color: theme.colors.text }]}>{word}</Text>
               <View style={styles.headerButtonsContainer}>
                 <HeaderActionButton 
                   iconName="volume-high-outline" 
@@ -286,7 +278,7 @@ export default function WordDefinitionSheet({ visible, onClose, word, context, o
                   iconName={isFavorite ? "star" : "star-outline"} 
                   onPress={toggleFavorite}
                   isActive={isFavorite}
-                  color={!isParsed ? theme.colors.textTertiary : theme.colors.primary}
+                  color={theme.colors.primary}
                 />
                 <HeaderActionButton 
                   iconName="close-outline" 
@@ -296,30 +288,26 @@ export default function WordDefinitionSheet({ visible, onClose, word, context, o
               </View>
             </View>
 
-            <View style={styles.content}>
-              <View style={[styles.translationSection, { borderBottomColor: theme.colors.divider }]}>
-                {loadingTranslation ? (
-                  <ActivityIndicator size="small" color={theme.colors.primary} />
-                ) : (
-                  <View style={[styles.translationCapsule, { backgroundColor: theme.colors.primaryContainer }]}>
-                    <Text style={[styles.translationText, { color: theme.colors.primary }]}>{translation}</Text>
-                  </View>
-                )}
-              </View>
+            <ScrollView style={styles.content} showsVerticalScrollIndicator={true}>
+              <WordDictionaryInfo 
+                word={word} 
+                onAudioPress={handleAudioPress}
+                onDataUpdate={handleWordDataUpdate}
+              />
 
               <View style={styles.definitionSection}>
                 <AIWordAnalysis
                   ref={aiWordAnalysisRef}
                   word={word}
                   context={context}
-                  translation={translation}
+                  translation={translation} // 传递翻译给AI分析
                   hasWordData={hasWordData}
                   onAnalysisComplete={handleAnalysisComplete}
                   onError={handleAnalysisError}
                   onRefresh={handleRefresh}
                 />
               </View>
-            </View>
+            </ScrollView>
           </View>
         </View>
       </View>
@@ -344,16 +332,11 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical:6,
     borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  wordText: {
-    fontSize: 22,
-    fontWeight: '700',
-    flex: 1,
   },
   headerActionButton: {
     padding: 8,
@@ -365,23 +348,9 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-  },
-  translationSection: {
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  translationCapsule: {
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    alignSelf: 'flex-start',
-  },
-  translationText: {
-    fontSize: 16,
   },
   definitionSection: {
-    flex: 1,
+    paddingHorizontal: 20,
     paddingVertical: 10,
   },
 });

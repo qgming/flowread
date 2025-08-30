@@ -165,15 +165,15 @@ export default function ReadingScreen({ navigation }: any) {
 
   const actionItems = [ 
     {
+      title: '导入TXT文件',
+      onPress: handleImportFile,
+    },
+    {
       title: '新增文章',
       onPress: () => {
         setBottomSheetVisible(false);
         navigation.navigate('ShareInput');
       },
-    },
-       {
-      title: '导入TXT文件',
-      onPress: handleImportFile,
     },
   ];
 

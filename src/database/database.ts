@@ -7,6 +7,11 @@ export interface FavoriteWord {
   word: string;
   translation: string;
   definition: string;
+  phonetic?: string;
+  phonetics?: string;
+  meanings?: string;
+  audio_url?: string;
+  source_urls?: string;
   created_at: string;
 }
 
@@ -54,6 +59,11 @@ class Database {
           word TEXT NOT NULL,
           translation TEXT NOT NULL,
           definition TEXT NOT NULL,
+          phonetic TEXT,
+          phonetics TEXT,
+          meanings TEXT,
+          audio_url TEXT,
+          source_urls TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           UNIQUE(word) ON CONFLICT REPLACE
         );
@@ -205,25 +215,69 @@ class Database {
     return !!result;
   }
 
-  // 获取单词的翻译和定义
-  async getWordData(word: string): Promise<{ translation: string; definition: string } | null> {
+  // 获取单词的完整数据
+  async getWordData(word: string): Promise<FavoriteWord | null> {
     await this.ensureInitialized();
     
     const result = await this.db!.getFirstAsync(
-      'SELECT translation, definition FROM favorite_words WHERE word = ?',
+      'SELECT * FROM favorite_words WHERE word = ?',
       [word]
     );
     
     if (!result) return null;
     
     return {
+      id: (result as any).id,
+      word: (result as any).word,
       translation: (result as any).translation,
-      definition: (result as any).definition
+      definition: (result as any).definition,
+      phonetic: (result as any).phonetic,
+      phonetics: (result as any).phonetics,
+      meanings: (result as any).meanings,
+      audio_url: (result as any).audio_url,
+      source_urls: (result as any).source_urls,
+      created_at: (result as any).created_at
     };
   }
 
-  // 更新单词的翻译和定义
-  async updateWordData(word: string, translation: string, definition: string): Promise<void> {
+  // 更新单词的完整数据
+  async updateWordData(
+    word: string, 
+    translation: string, 
+    definition: string,
+    wordDetails?: {
+      phonetic?: string;
+      phonetics?: any;
+      meanings?: any;
+      audioUrl?: string;
+      sourceUrls?: string[];
+    }
+  ): Promise<void> {
+    await this.ensureInitialized();
+    
+    const query = `
+      INSERT OR REPLACE INTO favorite_words 
+      (word, translation, definition, phonetic, phonetics, meanings, audio_url, source_urls) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    
+    await this.db!.runAsync(
+      query,
+      [
+        word, 
+        translation, 
+        definition,
+        wordDetails?.phonetic || null,
+        wordDetails?.phonetics ? JSON.stringify(wordDetails.phonetics) : null,
+        wordDetails?.meanings ? JSON.stringify(wordDetails.meanings) : null,
+        wordDetails?.audioUrl || null,
+        wordDetails?.sourceUrls ? JSON.stringify(wordDetails.sourceUrls) : null
+      ]
+    );
+  }
+
+  // 向后兼容的简单更新
+  async updateWordDataSimple(word: string, translation: string, definition: string): Promise<void> {
     await this.ensureInitialized();
     
     await this.db!.runAsync(

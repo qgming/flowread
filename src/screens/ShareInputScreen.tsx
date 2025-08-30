@@ -26,28 +26,36 @@ export default function ShareInputScreen() {
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSave = async () => {
-    if (!content.trim()) {
+  const handleSave = React.useCallback(async () => {
+    const trimmedContent = content.trim();
+    
+    if (!trimmedContent || trimmedContent.length === 0) {
       Alert.alert('提示', '请输入内容');
+      return;
+    }
+    
+    if (trimmedContent.replace(/\s/g, '').length === 0) {
+      Alert.alert('提示', '请输入有效内容，不能只输入空格');
       return;
     }
 
     setLoading(true);
     
     try {
-      const finalTitle = title.trim() || content.trim().substring(0, 50);
-      await Database.insertArticle(finalTitle, content.trim(), []);
+      const finalTitle = title.trim() || trimmedContent.substring(0, 10);
+      await Database.insertArticle(finalTitle, trimmedContent, []);
       
       Alert.alert('成功', '文章已保存', [
         { text: '确定', onPress: () => navigation.goBack() }
       ]);
     } catch (error) {
       console.error('保存失败:', error);
-      Alert.alert('错误', '保存失败，请重试');
+      const errorMessage = error instanceof Error ? error.message : '保存失败，请重试';
+      Alert.alert('错误', errorMessage);
     } finally {
       setLoading(false);
     }
-  };
+  }, [content, title, navigation]);
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
@@ -68,7 +76,7 @@ export default function ShareInputScreen() {
         </View>
       ),
     });
-  }, [navigation, loading]);
+  }, [navigation, loading, handleSave]);
 
   return (
     <KeyboardAvoidingView
@@ -107,6 +115,8 @@ export default function ShareInputScreen() {
             multiline
             textAlignVertical="top"
             autoFocus
+            scrollEnabled={true}
+            keyboardType="default"
           />
         </View>
       </ScrollView>
@@ -123,13 +133,12 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingHorizontal: 16,
   },
   titleInput: {
     fontSize: 22,
     fontWeight: 'bold',
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 0,
     textAlign: 'left',
   },
