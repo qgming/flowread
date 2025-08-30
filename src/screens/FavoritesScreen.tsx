@@ -10,7 +10,7 @@ import {
   SectionList,
   Clipboard
 } from 'react-native';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import database from '../database/database';
 import BottomActionSheet from '../components/BottomActionSheet';
@@ -18,6 +18,7 @@ import WordDetailSheet from '../components/WordDetailSheet';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../theme/ThemeContext';
+import { eventBus, EVENTS } from '../utils/eventBus';
 
 interface FavoriteWord {
   id: number;
@@ -57,19 +58,18 @@ export default function FavoritesScreen() {
     }
   }, []);
 
-  // 初始加载
+  // 初始加载 - 只在组件挂载时加载一次
   useEffect(() => {
     loadFavorites();
   }, [loadFavorites]);
 
-  // 每次进入页面时刷新数据
-  useFocusEffect(
-    useCallback(() => {
-      loadFavorites();
-    }, [loadFavorites])
-  );
+  // 监听收藏变化事件
+  useEffect(() => {
+    const unsubscribe = eventBus.on(EVENTS.FAVORITES_CHANGED, loadFavorites);
+    return unsubscribe;
+  }, [loadFavorites]);
 
-    // 监听导航参数变化，处理底部操作表
+  // 监听导航参数变化，处理底部操作表
   useEffect(() => {
     const unsubscribe = navigation.addListener('state', (e) => {
       try {
@@ -144,8 +144,8 @@ export default function FavoritesScreen() {
           onPress: async () => {
             try {
               await database.removeFavoriteWord(word);
-              const updatedWords = favoriteWords.filter(w => w.word !== word);
-              setFavoriteWords(updatedWords);
+              // 发送事件通知收藏已变化
+              eventBus.emit(EVENTS.FAVORITES_CHANGED);
             } catch (error) {
               console.error('取消收藏失败:', error);
             }
@@ -217,9 +217,31 @@ export default function FavoritesScreen() {
     
     return (
       <View style={[styles.sectionHeader, { backgroundColor: theme.colors.background}]}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
-          {title} ({wordCount})
-        </Text>
+        <View style={styles.tagsContainer}>
+          <View style={[
+            styles.capsule,
+            { backgroundColor: theme.isDark ? '#38383A' : '#F2F2F7' }
+          ]}>
+            <Text style={[
+              styles.capsuleText,
+              { color: theme.isDark ? '#EBEBF599' : '#424242' }
+            ]} numberOfLines={1}>
+              {title}
+            </Text>
+          </View>
+          
+          <View style={[
+            styles.capsule,
+            { backgroundColor: theme.isDark ? '#0A2A4A' : '#e3f2fd' }
+          ]}>
+            <Text style={[
+              styles.capsuleText,
+              { color: theme.isDark ? '#64b5f6' : '#1565c0' }
+            ]} numberOfLines={1}>
+              {wordCount}
+            </Text>
+          </View>
+        </View>
         <TouchableOpacity 
           style={styles.expandButton}
           onPress={() => toggleSection(title)}
@@ -387,6 +409,21 @@ const styles = StyleSheet.create({
   expandButton: {
     padding: 4,
   },
+  tagsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  capsule: {
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    maxWidth: 100,
+  },
+  capsuleText: {
+    fontSize: 12,
+  },
   wordItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -442,7 +479,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     shadowOffset: {
       width: 0,
-      height: 5,
+    height: 5,
     },
     shadowOpacity: 0.1,
     shadowRadius: 10,

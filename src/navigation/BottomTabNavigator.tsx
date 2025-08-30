@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import ReadingScreen from '../screens/ReadingScreen';
@@ -87,14 +87,36 @@ export default function BottomTabNavigator() {
         name="阅读" 
         component={ReadingScreen}
         options={{
-          title: '阅读',
+          headerTitle: () => (
+            <View style={styles.headerTitleContainer}>
+              <Image 
+                source={require('../../assets/images/splash-icon.png')} 
+                style={styles.headerLogo}
+                resizeMode="contain"
+              />
+              <Text style={[styles.headerTitleText, { color: theme.colors.text }]}>
+                流畅阅读
+              </Text>
+            </View>
+          ),
         }}
       />
       <Tab.Screen 
         name="单词" 
         component={FavoritesScreen}
         options={({ navigation }) => ({
-          title: '单词',
+          headerTitle: () => (
+            <View style={styles.headerTitleContainer}>
+              {/* <Image 
+                source={require('../../assets/images/flow-small.png')} 
+                style={styles.headerLogo}
+                resizeMode="contain"
+              /> */}
+              <Text style={[styles.headerTitleText, { color: theme.colors.text }]}>
+                单词
+              </Text>
+            </View>
+          ),
           headerRight: () => (
             <View style={styles.headerButtons}>
               <TouchableOpacity
@@ -122,7 +144,18 @@ export default function BottomTabNavigator() {
         name="设置" 
         component={SettingsScreen}
         options={{
-          title: '设置',
+          headerTitle: () => (
+            <View style={styles.headerTitleContainer}>
+              {/* <Image 
+                source={require('../../assets/images/flow-small.png')} 
+                style={styles.headerLogo}
+                resizeMode="contain"
+              /> */}
+              <Text style={[styles.headerTitleText, { color: theme.colors.text }]}>
+                设置
+              </Text>
+            </View>
+          ),
         }}
       />
     </Tab.Navigator>
@@ -149,6 +182,19 @@ const styles = StyleSheet.create({
   },
   countText: {
     fontSize: 14,
+    fontWeight: '600',
+  },
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerLogo: {
+    width: 32,
+    height: 32,
+    marginRight: 2,
+  },
+  headerTitleText: {
+    fontSize: 22,
     fontWeight: '600',
   },
 });

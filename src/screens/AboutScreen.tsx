@@ -14,7 +14,7 @@ export default function AboutScreen() {
       <View style={styles.headerSection}>
         <View style={styles.logoContainer}>
           <Image 
-            source={require('../../assets/icon.png')} 
+            source={require('../../assets/images/splash-icon.png')} 
             style={styles.logo}
           />
           <Text style={[styles.appName, { color: theme.colors.text }]}>流畅阅读</Text>

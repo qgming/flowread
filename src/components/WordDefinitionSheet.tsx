@@ -18,6 +18,7 @@ import { DeepLXTranslationService } from '../services/translation';
 import AIWordAnalysis from './AIWordAnalysis';
 import { useTheme } from '../theme/ThemeContext';
 import { speakWord } from '../services/speech';
+import { eventBus, EVENTS } from '../utils/eventBus';
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -227,6 +228,9 @@ export default function WordDefinitionSheet({ visible, onClose, word, context, o
       await database.addFavoriteWord(word, translation, definition);
     }
     setIsFavorite(!isFavorite);
+    
+    // 发送事件通知收藏已变化
+    eventBus.emit(EVENTS.FAVORITES_CHANGED);
     
     // 通知父组件收藏状态变化
     if (onFavoriteChange) {

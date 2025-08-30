@@ -5,7 +5,6 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Modal,
   TextInput,
   Alert,
   ScrollView,
@@ -22,12 +21,8 @@ export default function ReadingScreen({ navigation }: any) {
   const { theme } = useTheme();
   const [articles, setArticles] = useState<Article[]>([]);
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
-  const [pasteModalVisible, setPasteModalVisible] = useState(false);
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [tags, setTags] = useState('');
-  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
 
   useFocusEffect(
     useCallback(() => {
@@ -114,27 +109,6 @@ export default function ReadingScreen({ navigation }: any) {
     }
   };
 
-  const handlePasteImport = async () => {
-    if (!title.trim() || !content.trim()) {
-      Alert.alert('提示', '请输入标题和内容');
-      return;
-    }
-
-    try {
-      await Database.insertArticle(title.trim(), content.trim(), []);
-      await loadArticles();
-      
-      setTitle('');
-      setContent('');
-      setPasteModalVisible(false);
-      
-      Alert.alert('成功', '文章保存成功');
-    } catch (error) {
-      console.error('Error saving article:', error);
-      Alert.alert('错误', '保存失败');
-    }
-  };
-
   const handleDeleteArticle = async (id: number) => {
     try {
       await Database.deleteArticle(id);
@@ -189,14 +163,17 @@ export default function ReadingScreen({ navigation }: any) {
     </View>
   );
 
-  const actionItems = [
+  const actionItems = [ 
     {
+      title: '新增文章',
+      onPress: () => {
+        setBottomSheetVisible(false);
+        navigation.navigate('ShareInput');
+      },
+    },
+       {
       title: '导入TXT文件',
       onPress: handleImportFile,
-    },
-    {
-      title: '粘贴文本',
-      onPress: () => setPasteModalVisible(true),
     },
   ];
 
@@ -289,62 +266,6 @@ export default function ReadingScreen({ navigation }: any) {
         actions={actionItems}
         title="添加文章"
       />
-
-      {/* 粘贴文本模态框 */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={pasteModalVisible}
-        onRequestClose={() => setPasteModalVisible(false)}
-      >
-        <View style={[styles.modalContainer, { backgroundColor: theme.colors.overlay }]}>
-          <View style={[styles.modalBox, { backgroundColor: theme.colors.modalBackground }]}>
-            <Text style={[styles.modalTitle, { color: theme.colors.text }]}>添加文章</Text>
-            
-            <TextInput
-              style={[styles.input, { 
-                borderColor: theme.colors.border, 
-                color: theme.colors.text,
-                backgroundColor: theme.colors.surface
-              }]}
-              placeholder="标题"
-              placeholderTextColor={theme.colors.textTertiary}
-              value={title}
-              onChangeText={setTitle}
-            />
-            
-            <TextInput
-              style={[styles.input, styles.textArea, { 
-                borderColor: theme.colors.border, 
-                color: theme.colors.text,
-                backgroundColor: theme.colors.surface
-              }]}
-              placeholder="内容"
-              placeholderTextColor={theme.colors.textTertiary}
-              value={content}
-              onChangeText={setContent}
-              multiline
-              numberOfLines={6}
-            />
-            
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.cancelButton, { backgroundColor: theme.colors.surfaceVariant }]}
-                onPress={() => setPasteModalVisible(false)}
-              >
-                <Text style={[styles.cancelButtonText, { color: theme.colors.textSecondary }]}>取消</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[styles.saveButton, { backgroundColor: theme.colors.primary }]}
-                onPress={handlePasteImport}
-              >
-                <Text style={[styles.saveButtonText, { color: theme.colors.onPrimary }]}>保存</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -429,59 +350,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 8,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalBox: {
-    borderRadius: 12,
-    padding: 20,
-    width: '90%',
-    maxWidth: 400,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 12,
-    fontSize: 16,
-  },
-  textArea: {
-    height: 160,
-    textAlignVertical: 'top',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-  },
-  cancelButton: {
-    flex: 1,
-    marginRight: 8,
-    borderRadius: 8,
-    paddingVertical: 12,
-  },
-  saveButton: {
-    flex: 1,
-    marginLeft: 8,
-    borderRadius: 8,
-    paddingVertical: 12,
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    textAlign: 'center',
   },
 });

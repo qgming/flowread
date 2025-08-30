@@ -13,6 +13,7 @@ import ImmersiveReadingScreen from '../screens/ImmersiveReadingScreen';
 import WordMemoryScreen from '../screens/WordMemoryScreen';
 import AboutScreen from '../screens/AboutScreen';
 import SpeechSettingsScreen from '../screens/SpeechSettingsScreen';
+import ShareInputScreen from '../screens/ShareInputScreen';
 import { Article } from '../database/database';
 import { useTheme } from '../theme/ThemeContext';
 
@@ -28,9 +29,24 @@ export type RootStackParamList = {
   ImmersiveReading: undefined;
   WordMemory: undefined;
   About: undefined;
+  ShareInput: { sharedText?: string; sharedFileUri?: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+const HeaderTitle = ({ title }: { title: string }) => {
+  const { theme } = useTheme();
+  return (
+    <Text style={{ 
+      fontSize: 18, 
+      fontWeight: '600', 
+      color: theme.colors.primary,
+      marginLeft: -25 
+    }}>
+      {title}
+    </Text>
+  );
+};
 
 export default function RootNavigator() {
   const { theme } = useTheme();
@@ -69,14 +85,7 @@ export default function RootNavigator() {
           name="AISettings" 
           component={AISettingsScreen}
           options={{
-            headerTitle: () => (
-              <Text style={{ 
-                fontSize: 18, 
-                fontWeight: '600', 
-                color: theme.colors.primary,
-                marginLeft: -25 
-              }}>AI设置</Text>
-            ),
+            headerTitle: () => <HeaderTitle title="AI设置" />,
             headerBackTitle: '返回',
             headerShadowVisible: false,
           }}
@@ -85,14 +94,7 @@ export default function RootNavigator() {
           name="AIProviderConfig" 
           component={AIProviderConfigScreen}
           options={{
-            headerTitle: () => (
-              <Text style={{ 
-                 fontSize: 18, 
-                fontWeight: '600', 
-                color: theme.colors.primary,
-                marginLeft: -25
-              }}>提供商配置</Text>
-            ),
+            headerTitle: () => <HeaderTitle title="提供商配置" />,
             headerBackTitle: '返回',
             headerShadowVisible: false,
           }}
@@ -101,14 +103,7 @@ export default function RootNavigator() {
           name="DeepLXSettings" 
           component={DeepLXSettingsScreen}
           options={{
-            headerTitle: () => (
-              <Text style={{ 
-                 fontSize: 18, 
-                fontWeight: '600', 
-                color: theme.colors.primary,
-                marginLeft: -25
-              }}>DeepL设置</Text>
-            ),
+            headerTitle: () => <HeaderTitle title="DeepL设置" />,
             headerBackTitle: '返回',
             headerShadowVisible: false,
           }}
@@ -117,14 +112,7 @@ export default function RootNavigator() {
           name="TranslationSettings" 
           component={TranslationSettingsScreen}
           options={{
-            headerTitle: () => (
-              <Text style={{ 
-                fontSize: 18, 
-                fontWeight: '600', 
-                color: theme.colors.primary,
-                marginLeft: -25 
-              }}>翻译偏好</Text>
-            ),
+            headerTitle: () => <HeaderTitle title="翻译偏好" />,
             headerBackTitle: '返回',
             headerShadowVisible: false,
           }}
@@ -133,14 +121,7 @@ export default function RootNavigator() {
           name="AnalysisSettings" 
           component={AnalysisSettingsScreen}
           options={{
-            headerTitle: () => (
-              <Text style={{ 
-                fontSize: 18, 
-                fontWeight: '600', 
-                color: theme.colors.primary,
-                marginLeft: -25 
-              }}>解析服务</Text>
-            ),
+            headerTitle: () => <HeaderTitle title="解析服务" />,
             headerBackTitle: '返回',
             headerShadowVisible: false,
           }}
@@ -149,14 +130,7 @@ export default function RootNavigator() {
           name="SpeechSettings" 
           component={SpeechSettingsScreen}
           options={{
-            headerTitle: () => (
-              <Text style={{ 
-                fontSize: 18, 
-                fontWeight: '600', 
-                color: theme.colors.primary,
-                marginLeft: -25 
-              }}>朗读设置</Text>
-            ),
+            headerTitle: () => <HeaderTitle title="朗读设置" />,
             headerBackTitle: '返回',
             headerShadowVisible: false,
           }}
@@ -183,14 +157,16 @@ export default function RootNavigator() {
           name="About" 
           component={AboutScreen}
           options={{
-            headerTitle: () => (
-              <Text style={{ 
-                fontSize: 18, 
-                fontWeight: '600', 
-                color: theme.colors.primary,
-                marginLeft: -25 
-              }}>关于我们</Text>
-            ),
+            headerTitle: () => <HeaderTitle title="关于我们" />,
+            headerBackTitle: '返回',
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen 
+          name="ShareInput" 
+          component={ShareInputScreen}
+          options={{
+            headerTitle: () => <HeaderTitle title="新增文章" />,
             headerBackTitle: '返回',
             headerShadowVisible: false,
           }}

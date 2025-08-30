@@ -113,7 +113,7 @@ export const defaultAnalysisSettings: AnalysisSettings = {
 };
 
 export const defaultSpeechSettings: SpeechSettings = {
-  autoSpeak: true,
+  autoSpeak: false,
   rate: 0.7,
   language: 'en-US'
 };
