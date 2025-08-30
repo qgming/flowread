@@ -44,6 +44,10 @@ export default function SettingsScreen() {
     navigation.navigate('About');
   };
 
+  const navigateToSpeechSettings = () => {
+    navigation.navigate('SpeechSettings' as any);
+  };
+
   const getThemeLabel = (mode: ThemeMode) => {
     switch (mode) {
       case 'system':
@@ -106,6 +110,21 @@ export default function SettingsScreen() {
                   <Ionicons name="search-outline" size={22} color="#007AFF" />
                 </View>
                 <Text style={[styles.settingTitle, { color: theme.colors.text }]}>解析服务</Text>
+              </View>
+              <View style={styles.settingRight}>
+                <Ionicons name="chevron-forward" size={22} color="#c7c7cc" />
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.settingItem} 
+              onPress={navigateToSpeechSettings}
+            >
+              <View style={styles.settingLeft}>
+                <View style={styles.iconContainer}>
+                  <Ionicons name="volume-high-outline" size={22} color="#007AFF" />
+                </View>
+                <Text style={[styles.settingTitle, { color: theme.colors.text }]}>朗读设置</Text>
               </View>
               <View style={styles.settingRight}>
                 <Ionicons name="chevron-forward" size={22} color="#c7c7cc" />

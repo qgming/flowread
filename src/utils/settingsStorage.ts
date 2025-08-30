@@ -26,6 +26,12 @@ export interface TranslationSettings {
   translationPrompt: string;
 }
 
+export interface SpeechSettings {
+  autoSpeak: boolean;
+  rate: number;
+  language: string;
+}
+
 export type ThemeMode = 'system' | 'light' | 'dark';
 
 export interface Settings {
@@ -40,6 +46,7 @@ export interface Settings {
   deeplx: DeepLXConfig;
   translation: TranslationSettings;
   analysis: AnalysisSettings;
+  speech: SpeechSettings;
 }
 
 const SETTINGS_KEY = 'app_settings';
@@ -105,12 +112,19 @@ export const defaultAnalysisSettings: AnalysisSettings = {
   articleAnalysisProvider: 'flowai',
 };
 
+export const defaultSpeechSettings: SpeechSettings = {
+  autoSpeak: true,
+  rate: 0.7,
+  language: 'en-US'
+};
+
 export const defaultSettings: Settings = {
   themeMode: 'system',
   aiProviders: defaultAIProviders,
   deeplx: defaultDeepLXConfig,
   translation: defaultTranslationSettings,
   analysis: defaultAnalysisSettings,
+  speech: defaultSpeechSettings,
 };
 
 export const saveSettings = async (settings: Settings): Promise<void> => {
@@ -154,6 +168,10 @@ export const loadSettings = async (): Promise<Settings> => {
         analysis: {
           ...defaultAnalysisSettings,
           ...(parsed.analysis || {}),
+        },
+        speech: {
+          ...defaultSpeechSettings,
+          ...(parsed.speech || {}),
         },
       };
     }

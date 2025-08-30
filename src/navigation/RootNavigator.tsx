@@ -12,6 +12,7 @@ import AnalysisSettingsScreen from '../screens/AnalysisSettingsScreen';
 import ImmersiveReadingScreen from '../screens/ImmersiveReadingScreen';
 import WordMemoryScreen from '../screens/WordMemoryScreen';
 import AboutScreen from '../screens/AboutScreen';
+import SpeechSettingsScreen from '../screens/SpeechSettingsScreen';
 import { Article } from '../database/database';
 import { useTheme } from '../theme/ThemeContext';
 
@@ -23,6 +24,7 @@ export type RootStackParamList = {
   DeepLXSettings: undefined;
   TranslationSettings: undefined;
   AnalysisSettings: undefined;
+  SpeechSettings: undefined;
   ImmersiveReading: undefined;
   WordMemory: undefined;
   About: undefined;
@@ -138,6 +140,22 @@ export default function RootNavigator() {
                 color: theme.colors.primary,
                 marginLeft: -25 
               }}>解析服务</Text>
+            ),
+            headerBackTitle: '返回',
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen 
+          name="SpeechSettings" 
+          component={SpeechSettingsScreen}
+          options={{
+            headerTitle: () => (
+              <Text style={{ 
+                fontSize: 18, 
+                fontWeight: '600', 
+                color: theme.colors.primary,
+                marginLeft: -25 
+              }}>朗读设置</Text>
             ),
             headerBackTitle: '返回',
             headerShadowVisible: false,

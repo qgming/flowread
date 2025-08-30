@@ -84,7 +84,6 @@ export default function AboutScreen() {
       </View>
 
       <View style={[styles.section, { borderTopColor: theme.colors.divider }]}>
-        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>版权声明</Text>
         <Text style={[styles.copyright, { color: theme.colors.textSecondary }]}>
           © 2025 QGMING. 保留所有权利。
         </Text>

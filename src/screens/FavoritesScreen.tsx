@@ -42,6 +42,7 @@ export default function FavoritesScreen() {
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
   const [wordDetailVisible, setWordDetailVisible] = useState(false);
   const [selectedWord, setSelectedWord] = useState<FavoriteWord | null>(null);
+  const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({});
 
   // 加载收藏单词
   const loadFavorites = useCallback(async () => {
@@ -67,6 +68,34 @@ export default function FavoritesScreen() {
       loadFavorites();
     }, [loadFavorites])
   );
+
+    // 监听导航参数变化，处理底部操作表
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('state', (e) => {
+      try {
+        const state = navigation.getState();
+        const currentRoute = state.routes[state.index];
+        const params = currentRoute.params as any;
+        if (params?.showBottomSheet) {
+          setBottomSheetVisible(true);
+          // 清除参数
+          navigation.setParams({ showBottomSheet: undefined } as any);
+        }
+      } catch (error) {
+        // 忽略类型错误
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
+  // 切换展开收起状态
+  const toggleSection = (date: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [date]: !prev[date]
+    }));
+  };
 
   // 按日期分组
   const groupWordsByDate = (words: FavoriteWord[]): SectionData[] => {
@@ -166,7 +195,7 @@ export default function FavoritesScreen() {
 
   const renderWordItem = ({ item }: { item: FavoriteWord }) => (
     <TouchableOpacity 
-      style={[styles.wordItem, { borderBottomColor: theme.colors.divider }]}
+      style={[styles.wordItem, { borderColor: theme.colors.divider }]}
       onPress={() => openWordDetail(item)}
     >
       <View style={styles.wordLeft}>
@@ -182,11 +211,37 @@ export default function FavoritesScreen() {
     </TouchableOpacity>
   );
 
-  const renderSectionHeader = ({ section: { title } }: { section: { title: string } }) => (
-    <View style={[styles.sectionHeader, { backgroundColor: theme.colors.surfaceVariant, borderBottomColor: theme.colors.divider }]}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>{title}</Text>
-    </View>
-  );
+  const renderSectionHeader = ({ section: { title } }: { section: { title: string } }) => {
+    const isExpanded = expandedSections[title] !== false; // 默认展开
+    const wordCount = sections.find(s => s.title === title)?.data.length || 0;
+    
+    return (
+      <View style={[styles.sectionHeader, { backgroundColor: theme.colors.background}]}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
+          {title} ({wordCount})
+        </Text>
+        <TouchableOpacity 
+          style={styles.expandButton}
+          onPress={() => toggleSection(title)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons 
+            name={isExpanded ? "chevron-up" : "chevron-down"} 
+            size={20} 
+            color={theme.colors.textSecondary} 
+          />
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  // 根据展开状态过滤数据
+  const getFilteredSections = () => {
+    return sections.map(section => ({
+      ...section,
+      data: expandedSections[section.title] !== false ? section.data : []
+    }));
+  };
 
   if (loading) {
     return (
@@ -198,15 +253,9 @@ export default function FavoritesScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* 顶部栏 */}
+      {/* 顶部栏 - 只保留搜索框 */}  
       <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
-        <TouchableOpacity style={[styles.countButton, { backgroundColor: theme.colors.primary }]}>
-          <Text style={[styles.countText, { color: theme.colors.onPrimary }]}>
-            {sections.reduce((total, section) => total + section.data.length, 0)}
-          </Text>
-        </TouchableOpacity>
-        
-        <View style={[styles.searchContainer, { backgroundColor: theme.colors.surface, shadowColor: theme.colors.text }]}>
+        <View style={[styles.searchContainer, { backgroundColor: theme.colors.surfaceVariant }]}>
           <Ionicons name="search" size={20} color={theme.colors.textTertiary} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, { color: theme.colors.text }]}
@@ -216,29 +265,22 @@ export default function FavoritesScreen() {
             placeholderTextColor={theme.colors.textTertiary}
           />
           {searchText.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchText('')}>
+            <TouchableOpacity onPress={() => setSearchText('')} style={styles.clearButton}>
               <Ionicons name="close-circle" size={20} color={theme.colors.textTertiary} />
             </TouchableOpacity>
           )}
         </View>
-        
-        <TouchableOpacity 
-          style={[styles.actionButton, { backgroundColor: theme.colors.primary }]}
-          onPress={() => setBottomSheetVisible(true)}
-        >
-          <Ionicons name="ellipsis-horizontal" size={24} color={theme.colors.onPrimary} />
-        </TouchableOpacity>
       </View>
 
       {/* 单词列表 */}
       <SectionList
-        sections={sections}
+        sections={getFilteredSections()}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderWordItem}
         renderSectionHeader={renderSectionHeader}
         contentContainerStyle={[
           styles.listContent,
-          sections.length === 0 && styles.emptyList
+          getFilteredSections().length === 0 && styles.emptyList
         ]}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
@@ -270,7 +312,7 @@ export default function FavoritesScreen() {
 
       {/* 悬浮胶囊按钮 */}
       <View style={styles.floatingButtonContainer}>
-        <View style={[styles.capsuleButton, { backgroundColor: theme.colors.surface, shadowColor: theme.colors.text }]}>
+        <View style={[styles.capsuleButton, { backgroundColor: theme.colors.surface,borderColor: theme.isDark ? '#38383A' : '#E5E5EA', shadowColor: theme.colors.text }]}>
           <TouchableOpacity 
             style={styles.buttonHalf}
             onPress={() => navigation.navigate('ImmersiveReading')}
@@ -306,33 +348,13 @@ const styles = StyleSheet.create({
     marginTop: 5,
     marginBottom: 8,
   },
-  countButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  countText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
   searchContainer: {
     flex: 1,
     flexDirection: 'row',
-    height: 36,  
     alignItems: 'center',
-    borderRadius: 18,
+    height: 40,
+    borderRadius: 10,
     paddingHorizontal: 12,
-    marginRight: 12,
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   searchIcon: {
     marginRight: 8,
@@ -340,14 +362,10 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    paddingVertical: 0,
+    paddingVertical: 8,
   },
-  actionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
+  clearButton: {
+    padding: 4,
   },
   listContent: {
     paddingBottom: 8,
@@ -356,13 +374,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  expandButton: {
+    padding: 4,
   },
   wordItem: {
     flexDirection: 'row',
@@ -371,7 +394,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     minHeight: 50,
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   wordLeft: {
     flex: 1,
@@ -416,13 +439,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     width: '60%',
     maxWidth: 500,
+    borderWidth: 1,
     shadowOffset: {
       width: 0,
-      height: 8,
+      height: 5,
     },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.1,
     shadowRadius: 10,
-    elevation: 8,
+    elevation: 5,
   },
   buttonHalf: {
     flex: 1,

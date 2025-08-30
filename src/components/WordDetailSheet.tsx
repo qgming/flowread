@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Markdown from 'react-native-markdown-display';
 import { useTheme } from '../theme/ThemeContext';
+import { speakWord } from '../services/speech';
+import { loadSettings } from '../utils/settingsStorage';
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -31,6 +33,31 @@ export default function WordDetailSheet({
   definition 
 }: WordDetailSheetProps) {
   const { theme } = useTheme();
+
+  useEffect(() => {
+    const autoSpeakWord = async () => {
+      if (visible && word) {
+        try {
+          const settings = await loadSettings();
+          if (settings.speech.autoSpeak) {
+            await speakWord(word);
+          }
+        } catch (error) {
+          console.error('自动朗读失败:', error);
+        }
+      }
+    };
+
+    autoSpeakWord();
+  }, [visible, word]);
+
+  const handleSpeak = async () => {
+    try {
+      await speakWord(word);
+    } catch (error) {
+      console.error('朗读失败:', error);
+    }
+  };
 
   const markdownStyles = StyleSheet.create({
     body: {
@@ -125,13 +152,22 @@ export default function WordDetailSheet({
             {/* 顶部标题栏 */}
             <View style={[styles.header, { borderBottomColor: theme.colors.divider }]}>
               <Text style={[styles.wordText, { color: theme.colors.text }]}>{word}</Text>
-              <TouchableOpacity 
-                style={styles.closeButton} 
-                onPress={onClose}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Ionicons name="close-outline" size={28} color={theme.colors.primary} />
-              </TouchableOpacity>
+              <View style={styles.headerActions}>
+                <TouchableOpacity 
+                  style={styles.actionButton} 
+                  onPress={handleSpeak}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="volume-high-outline" size={24} color={theme.colors.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.actionButton} 
+                  onPress={onClose}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="close-outline" size={28} color={theme.colors.primary} />
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* 内容区域 */}
@@ -142,7 +178,6 @@ export default function WordDetailSheet({
             >
               {/* 翻译区域 */}
               <View style={styles.translationSection}>
-                <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>翻译</Text>
                 <View style={[styles.translationCapsule, { backgroundColor: theme.colors.primaryContainer }]}>
                   <Text style={[styles.translationText, { color: theme.colors.primary }]}>{translation}</Text>
                 </View>
@@ -195,8 +230,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     flex: 1,
   },
-  closeButton: {
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  actionButton: {
     padding: 8,
+    marginLeft: 8,
   },
   content: {
     flex: 1,
@@ -213,8 +253,8 @@ const styles = StyleSheet.create({
   },
   translationCapsule: {
     borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
     alignSelf: 'flex-start',
   },
   translationText: {

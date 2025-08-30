@@ -17,6 +17,7 @@ import { loadSettings } from '../utils/settingsStorage';
 import { DeepLXTranslationService } from '../services/translation';
 import AIWordAnalysis from './AIWordAnalysis';
 import { useTheme } from '../theme/ThemeContext';
+import { speakWord } from '../services/speech';
 
 const { height: screenHeight } = Dimensions.get('window');
 
@@ -92,6 +93,24 @@ export default function WordDefinitionSheet({ visible, onClose, word, context, o
       cleanup();
     };
   }, [cleanup]);
+
+  // 自动朗读功能
+  useEffect(() => {
+    const autoSpeakWord = async () => {
+      if (visible && word) {
+        try {
+          const settings = await loadSettings();
+          if (settings.speech.autoSpeak) {
+            await speakWord(word);
+          }
+        } catch (error) {
+          console.error('自动朗读失败:', error);
+        }
+      }
+    };
+
+    autoSpeakWord();
+  }, [visible, word]);
 
   // 当组件可见时，检查数据库并获取数据
   useEffect(() => {
@@ -232,6 +251,15 @@ export default function WordDefinitionSheet({ visible, onClose, word, context, o
     }
   }, [word, fetchTranslation]);
 
+  // 处理朗读
+  const handleSpeak = async () => {
+    try {
+      await speakWord(word);
+    } catch (error) {
+      console.error('朗读失败:', error);
+    }
+  };
+
   return (
     <Modal
       animationType="slide"
@@ -246,8 +274,9 @@ export default function WordDefinitionSheet({ visible, onClose, word, context, o
               <Text style={[styles.wordText, { color: theme.colors.text }]}>{word}</Text>
               <View style={styles.headerButtonsContainer}>
                 <HeaderActionButton 
-                  iconName="refresh" 
-                  onPress={handleRefresh} 
+                  iconName="volume-high-outline" 
+                  onPress={handleSpeak}
+                  color={theme.colors.primary}
                 />
                 <HeaderActionButton 
                   iconName={isFavorite ? "star" : "star-outline"} 
@@ -283,6 +312,7 @@ export default function WordDefinitionSheet({ visible, onClose, word, context, o
                   hasWordData={hasWordData}
                   onAnalysisComplete={handleAnalysisComplete}
                   onError={handleAnalysisError}
+                  onRefresh={handleRefresh}
                 />
               </View>
             </View>

@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Modal,
   Alert,
-  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Article } from '../database/database';
@@ -25,10 +23,8 @@ export default function ArticleCard({ article, onPress, onDelete }: ArticleCardP
     const date = new Date(dateString);
     return date.toLocaleDateString('zh-CN', {
       year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+      month: '2-digit',
+      day: '2-digit'
     });
   };
 
@@ -50,32 +46,69 @@ export default function ArticleCard({ article, onPress, onDelete }: ArticleCardP
   };
 
   return (
-    <View style={[styles.container, { marginHorizontal: 16, marginVertical: 8 }]}>
+    <View style={styles.container}>
       <TouchableOpacity 
-        style={[styles.card, { 
-          backgroundColor: theme.colors.surface,
-          borderColor: theme.colors.border 
-        }]} 
+        style={[
+          styles.card,
+          {
+            backgroundColor: theme.isDark ? '#1C1C1E' : '#FFFFFF',
+            borderColor: theme.isDark ? '#38383A' : '#E5E5EA',
+          }
+        ]} 
         onPress={onPress}
+        activeOpacity={0.8}
       >
-        <View style={styles.header}>
+        <View style={styles.content}>
           <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={2}>
             {article.title}
           </Text>
-        </View>
-
-        <View style={styles.footer}>
-          <Text style={[styles.date, { color: theme.colors.textTertiary }]}>
-            {formatDate(article.created_at)}
-          </Text>
           
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={handleDelete}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="close" size={20} color={theme.colors.error} />
-          </TouchableOpacity>
+          <View style={styles.footer}>
+            <View style={styles.tagsContainer}>
+              <View style={[
+                styles.capsule,
+                { backgroundColor: theme.isDark ? '#38383A' : '#F2F2F7' }
+              ]}>
+                <Text style={[
+                  styles.capsuleText,
+                  { color: theme.isDark ? '#EBEBF599' : '#424242' }
+                ]} numberOfLines={1}>
+                  {formatDate(article.created_at)}
+                </Text>
+              </View>
+              
+              {article.tags && article.tags.length > 0 && 
+                article.tags.slice(0, 2).map((tag, index) => (
+                  <View 
+                    key={`${tag}-${index}`} 
+                    style={[
+                      styles.capsule,
+                      { 
+                        backgroundColor: theme.isDark ? '#0A2A4A' : '#e3f2fd',
+                      }
+                    ]}
+                  >
+                    <Text style={[
+                      styles.capsuleText,
+                      { color: theme.isDark ? '#64b5f6' : '#1565c0' }
+                    ]} numberOfLines={1}>
+                      {tag.length > 6 ? tag.substring(0, 6) : tag}
+                    </Text>
+                  </View>
+                ))}
+            </View>
+            
+            <TouchableOpacity
+              style={[
+                styles.deleteButton,
+                { backgroundColor: theme.isDark ? '#FF453A20' : '#FF3B3015' }
+              ]}
+              onPress={handleDelete}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close" size={16} color={theme.colors.error} />
+            </TouchableOpacity>
+          </View>
         </View>
       </TouchableOpacity>
     </View>
@@ -84,30 +117,48 @@ export default function ArticleCard({ article, onPress, onDelete }: ArticleCardP
 
 const styles = StyleSheet.create({
   container: {
-    // margin样式移到组件属性中，以便使用主题
+    marginHorizontal: 16,
+    marginVertical: 6,
   },
   card: {
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
     borderWidth: 1,
+    overflow: 'hidden',
   },
-  header: {
-    marginBottom: 2,
+  content: {
+    padding: 16,
   },
   title: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
-    lineHeight: 24,
+    lineHeight: 22,
+    marginBottom: 12,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  deleteButton: {
-    padding: 1,
+  tagsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  date: {
-    fontSize: 14,
+  capsule: {
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    maxWidth: 100,
+  },
+  capsuleText: {
+    fontSize: 12,
+  },
+  deleteButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

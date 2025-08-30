@@ -24,8 +24,13 @@ export interface Article {
 
 class Database {
   private db: SQLite.SQLiteDatabase | null = null;
+  private isInitialized = false;
 
   async init() {
+    if (this.isInitialized && this.db) {
+      return;
+    }
+
     try {
       this.db = await SQLite.openDatabaseAsync(DATABASE_NAME);
       
@@ -54,16 +59,28 @@ class Database {
         );
       `);
       
+      this.isInitialized = true;
       console.log('Database initialized successfully');
     } catch (error) {
       console.error('Error initializing database:', error);
+      this.db = null;
+      this.isInitialized = false;
       throw error;
+    }
+  }
+
+  private async ensureInitialized() {
+    if (!this.isInitialized || !this.db) {
+      await this.init();
+    }
+    if (!this.db) {
+      throw new Error('数据库初始化失败');
     }
   }
 
   // Article methods
   async getAllArticles(): Promise<Article[]> {
-    if (!this.db) await this.init();
+    await this.ensureInitialized();
     
     const result = await this.db!.getAllAsync('SELECT * FROM articles ORDER BY created_at DESC');
     return (result as any[]).map(row => ({
@@ -80,7 +97,7 @@ class Database {
   }
 
   async getArticleById(id: number): Promise<Article | null> {
-    if (!this.db) await this.init();
+    await this.ensureInitialized();
     
     const result = await this.db!.getFirstAsync('SELECT * FROM articles WHERE id = ?', [id]);
     if (!result) return null;
@@ -99,7 +116,7 @@ class Database {
   }
 
   async insertArticle(title: string, content: string, tags: string[] = []): Promise<number> {
-    if (!this.db) await this.init();
+    await this.ensureInitialized();
     
     const result = await this.db!.runAsync(
       'INSERT INTO articles (title, content, tags) VALUES (?, ?, ?)',
@@ -110,13 +127,13 @@ class Database {
   }
 
   async deleteArticle(id: number): Promise<void> {
-    if (!this.db) await this.init();
+    await this.ensureInitialized();
     
     await this.db!.runAsync('DELETE FROM articles WHERE id = ?', [id]);
   }
 
   async updateArticle(id: number, title: string, content: string, tags: string[]): Promise<void> {
-    if (!this.db) await this.init();
+    await this.ensureInitialized();
     
     await this.db!.runAsync(
       'UPDATE articles SET title = ?, content = ?, tags = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
@@ -129,7 +146,7 @@ class Database {
     translations: { [key: string]: string }, 
     language: string
   ): Promise<void> {
-    if (!this.db) await this.init();
+    await this.ensureInitialized();
     
     await this.db!.runAsync(
       'UPDATE articles SET translations = ?, translation_language = ?, translation_updated_at = CURRENT_TIMESTAMP WHERE id = ?',
@@ -138,7 +155,7 @@ class Database {
   }
 
   async clearTranslations(id: number): Promise<void> {
-    if (!this.db) await this.init();
+    await this.ensureInitialized();
     
     await this.db!.runAsync(
       'UPDATE articles SET translations = NULL, translation_language = NULL, translation_updated_at = NULL WHERE id = ?',
@@ -148,7 +165,7 @@ class Database {
 
   // Favorite words methods
   async addFavoriteWord(word: string, translation: string, definition: string): Promise<void> {
-    if (!this.db) await this.init();
+    await this.ensureInitialized();
     
     await this.db!.runAsync(
       'INSERT INTO favorite_words (word, translation, definition) VALUES (?, ?, ?)',
@@ -157,7 +174,7 @@ class Database {
   }
 
   async removeFavoriteWord(word: string): Promise<void> {
-    if (!this.db) await this.init();
+    await this.ensureInitialized();
     
     await this.db!.runAsync(
       'DELETE FROM favorite_words WHERE word = ?',
@@ -166,7 +183,7 @@ class Database {
   }
 
   async getFavoriteWords(): Promise<FavoriteWord[]> {
-    if (!this.db) await this.init();
+    await this.ensureInitialized();
     
     const result = await this.db!.getAllAsync('SELECT * FROM favorite_words ORDER BY created_at DESC');
     return (result as any[]).map(row => ({
@@ -179,7 +196,7 @@ class Database {
   }
 
   async isWordFavorite(word: string): Promise<boolean> {
-    if (!this.db) await this.init();
+    await this.ensureInitialized();
     
     const result = await this.db!.getFirstAsync(
       'SELECT 1 FROM favorite_words WHERE word = ?',
@@ -188,9 +205,9 @@ class Database {
     return !!result;
   }
 
-  // 新增：获取单词的翻译和定义
+  // 获取单词的翻译和定义
   async getWordData(word: string): Promise<{ translation: string; definition: string } | null> {
-    if (!this.db) await this.init();
+    await this.ensureInitialized();
     
     const result = await this.db!.getFirstAsync(
       'SELECT translation, definition FROM favorite_words WHERE word = ?',
@@ -205,9 +222,9 @@ class Database {
     };
   }
 
-  // 新增：更新单词的翻译和定义
+  // 更新单词的翻译和定义
   async updateWordData(word: string, translation: string, definition: string): Promise<void> {
-    if (!this.db) await this.init();
+    await this.ensureInitialized();
     
     await this.db!.runAsync(
       'INSERT OR REPLACE INTO favorite_words (word, translation, definition) VALUES (?, ?, ?)',

@@ -22,6 +22,7 @@ interface AIWordAnalysisProps {
   hasWordData: boolean;
   onAnalysisComplete?: (definition: string) => void;
   onError?: (error: string) => void;
+  onRefresh?: () => void;
 }
 
 export interface AIWordAnalysisRef {
@@ -34,7 +35,8 @@ const AIWordAnalysis = forwardRef<AIWordAnalysisRef, AIWordAnalysisProps>(({
   translation,
   hasWordData,
   onAnalysisComplete,
-  onError
+  onError,
+  onRefresh
 }, ref) => {
   const { theme } = useTheme();
   const [definition, setDefinition] = useState<string>('');
@@ -224,6 +226,15 @@ const AIWordAnalysis = forwardRef<AIWordAnalysisRef, AIWordAnalysisProps>(({
     }
   }, [word, resetState, fetchAIDefinition]);
 
+  // 处理刷新按钮点击
+  const handleRefreshClick = useCallback(() => {
+    if (onRefresh) {
+      onRefresh();
+    } else {
+      handleRefreshAnalysis();
+    }
+  }, [onRefresh, handleRefreshAnalysis]);
+
   // 当word或context变化时重置状态
   useEffect(() => {
     resetState();
@@ -331,12 +342,26 @@ const AIWordAnalysis = forwardRef<AIWordAnalysisRef, AIWordAnalysisProps>(({
     <View style={[styles.container, { backgroundColor: theme.colors.modalBackground }]}>
       <View style={[styles.header, { backgroundColor: theme.colors.modalBackground }]}>
         <Text style={[styles.title, { color: theme.colors.textSecondary }]}>Flow老师</Text>
-        {loadingDefinition && (
-          <View style={styles.loadingStatus}>
-            <ActivityIndicator size="small" color={theme.colors.primary} />
-            <Text style={[styles.loadingStatusText, { color: theme.colors.primary }]}>解析中</Text>
-          </View>
-        )}
+        <View style={styles.headerRight}>
+          {loadingDefinition ? (
+            <View style={styles.loadingStatus}>
+              <ActivityIndicator size="small" color={theme.colors.primary} />
+              <Text style={[styles.loadingStatusText, { color: theme.colors.primary }]}>解析中</Text>
+            </View>
+          ) : (
+            <TouchableOpacity 
+              style={styles.refreshButton}
+              onPress={handleRefreshClick}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons 
+                name="refresh" 
+                size={20} 
+                color={theme.colors.primary} 
+              />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
       
       <View style={[styles.contentContainer, { borderColor: theme.colors.border }]}>
@@ -409,6 +434,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   loadingStatus: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -416,6 +445,9 @@ const styles = StyleSheet.create({
   loadingStatusText: {
     fontSize: 16,
     marginLeft: 6,
+  },
+  refreshButton: {
+    padding: 4,
   },
   contentContainer: {
     flex: 1,

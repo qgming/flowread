@@ -31,21 +31,21 @@ export default function ArticleHeader({
       
       <View style={styles.metaContainer}>
         <View style={styles.capsulesContainer}>
-          <View style={styles.dateCapsule}>
-            <Text style={styles.dateText}>
+          <View style={[styles.dateCapsule, { backgroundColor: theme.isDark ? '#38383A' : '#F2F2F7' }]}>
+            <Text style={[styles.dateText, { color: theme.isDark ? '#EBEBF599' : '#424242' }]}>
               {new Date(createdAt).toLocaleDateString('zh-CN')}
             </Text>
           </View>
           
-          <View style={styles.wordCountCapsule}>
-            <Text style={styles.wordCountText}>
+          <View style={[styles.wordCountCapsule, { backgroundColor: theme.isDark ? '#3E2723' : '#fff3e0' }]}>
+            <Text style={[styles.wordCountText, { color: theme.isDark ? '#FFAB91' : '#e65100' }]}>
               {wordCount} 词
             </Text>
           </View>
           
           {translationLanguage && (
-            <View style={[styles.dateCapsule, styles.translationCapsule]}>
-              <Text style={styles.translationText}>
+            <View style={[styles.translationCapsule, { backgroundColor: theme.isDark ? '#1B5E20' : '#e8f5e8' }]}>
+              <Text style={[styles.translationText, { color: theme.isDark ? '#81C784' : '#2e7d32' }]}>
                 {translationStatus} ({translationLanguage})
               </Text>
             </View>
@@ -53,11 +53,13 @@ export default function ArticleHeader({
           {tags.map((tag, index) => (
             <TouchableOpacity
               key={`${tag}-${index}`}
-              style={styles.tagCapsule}
+              style={[styles.tagCapsule, { backgroundColor: theme.isDark ? '#0A2A4A' : '#e3f2fd' }]}
               onPress={() => onRemoveTag(tag)}
               disabled={isUpdatingTags}
             >
-              <Text style={styles.tagText}>{tag}</Text>
+              <Text style={[styles.tagText, { color: theme.isDark ? '#64b5f6' : '#1565c0' }]}>
+                {tag}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -83,40 +85,35 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   dateCapsule: {
-    backgroundColor: '#FAFAFA',
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   dateText: {
     fontSize: 12,
-    color: '#424242',
   },
   wordCountCapsule: {
-    backgroundColor: '#fff3e0',
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   wordCountText: {
     fontSize: 12,
-    color: '#e65100',
   },
   translationCapsule: {
-    backgroundColor: '#e8f5e8',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   translationText: {
     fontSize: 12,
-    color: '#2e7d32',
   },
   tagCapsule: {
-    backgroundColor: '#e3f2fd',
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
   tagText: {
     fontSize: 12,
-    color: '#1565c0',
   },
 });
