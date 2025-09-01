@@ -12,37 +12,38 @@ import { Ionicons } from '@expo/vector-icons';
 import Markdown from 'react-native-markdown-display';
 import { loadSettings } from '../utils/settingsStorage';
 import { ChatService } from '../services/chat';
-import database from '../database/database';
 import { useTheme } from '../theme/ThemeContext';
 
 interface AIWordAnalysisProps {
   word: string;
   context: string;
-  translation: string;
-  hasWordData: boolean;
-  onAnalysisComplete?: (definition: string) => void;
+  isFavorite: boolean;
+  savedAIContent?: string;
+  onSaveToFavorites?: (content: string) => void;
   onError?: (error: string) => void;
   onRefresh?: () => void;
 }
 
 export interface AIWordAnalysisRef {
+  getCurrentContent: () => string;
   refreshAnalysis: () => void;
+  startAnalysis: () => void;
 }
 
 const AIWordAnalysis = forwardRef<AIWordAnalysisRef, AIWordAnalysisProps>(({
   word,
   context,
-  translation,
-  hasWordData,
-  onAnalysisComplete,
+  isFavorite,
+  savedAIContent,
+  onSaveToFavorites,
   onError,
-  onRefresh
+  onRefresh,
 }, ref) => {
   const { theme } = useTheme();
-  const [definition, setDefinition] = useState<string>('');
+  const [currentContent, setCurrentContent] = useState<string>('');
   const [loadingDefinition, setLoadingDefinition] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isParsed, setIsParsed] = useState(false);
+  const [hasSavedContent, setHasSavedContent] = useState(false);
 
   // 用于请求管理的引用
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -69,17 +70,33 @@ const AIWordAnalysis = forwardRef<AIWordAnalysisRef, AIWordAnalysisProps>(({
 
   // 暴露给父组件的方法
   useImperativeHandle(ref, () => ({
+    getCurrentContent: () => currentContent,
     refreshAnalysis: () => {
       handleRefreshAnalysis();
+    },
+    startAnalysis: () => {
+      handleStartAnalysis();
     }
   }));
+
+  // 初始化检查是否有已保存的内容
+  useEffect(() => {
+    if (savedAIContent && savedAIContent.trim()) {
+      setCurrentContent(savedAIContent);
+      setHasSavedContent(true);
+      setError(null);
+    } else {
+      setCurrentContent('');
+      setHasSavedContent(false);
+    }
+  }, [savedAIContent, word]);
 
   // 重置状态
   const resetState = useCallback(() => {
     if (isMountedRef.current) {
-      setDefinition('');
+      setCurrentContent('');
       setError(null);
-      setIsParsed(false);
+      setHasSavedContent(false);
     }
   }, []);
 
@@ -91,7 +108,7 @@ const AIWordAnalysis = forwardRef<AIWordAnalysisRef, AIWordAnalysisProps>(({
     cleanup();
     
     setLoadingDefinition(true);
-    setDefinition('');
+    setCurrentContent('');
     setError(null);
     
     try {
@@ -120,17 +137,19 @@ const AIWordAnalysis = forwardRef<AIWordAnalysisRef, AIWordAnalysisProps>(({
 
       const chatService = new ChatService(provider);
       
-      const prompt = `你是一名全国知名英语老师Flow老师，通熟易懂，知识渊博，风趣幽默，深受学生喜爱，请给学生讲解以下单词：
+      const prompt = `你是一名全国知名英语老师Flow老师，通熟易懂，知识渊博，风趣幽默，请给学生讲解以下单词：
 
 **单词**：${word}
 **上下文**：${context}
 
 ## 分析内容：
-1. **释义**
-2. **例句**（2个）
-3. **常见搭配**
-4. **记忆技巧**
-5. **在本文中的用处**`;
+1. **释义** - 简明扼要的核心含义
+2. **例句** - 2个实用例句
+3. **常见搭配** - 高频词组搭配
+4. **记忆技巧** - 有趣的记忆方法
+5. **在本文中的用处** - 结合上下文的用法
+
+请用Markdown格式，语言生动有趣，适合学习。`;
 
       // 递增请求ID，确保旧请求被忽略
       requestIdRef.current += 1;
@@ -159,21 +178,25 @@ const AIWordAnalysis = forwardRef<AIWordAnalysisRef, AIWordAnalysisProps>(({
           if (chunk?.content) {
             content += chunk.content;
             if (isMountedRef.current) {
-              setDefinition(content);
+              setCurrentContent(content);
             }
           }
         }
         
-        // 保存完整数据到数据库
+        // 保存完整数据
         if (isMountedRef.current && 
             currentRequestId === requestIdRef.current && 
             !signal.aborted && 
-            translation && content) {
-          database.updateWordData(word, translation, content);
+            content.trim()) {
           
-          setIsParsed(true);
-          onAnalysisComplete?.(content);
+          setHasSavedContent(false); // 新内容不再是已保存的
+          
+          // 如果已收藏，自动保存
+          if (isFavorite) {
+            onSaveToFavorites?.(content);
+          }
         }
+        
       } catch (err) {
         if (!isMountedRef.current || 
             currentRequestId !== requestIdRef.current || 
@@ -181,13 +204,6 @@ const AIWordAnalysis = forwardRef<AIWordAnalysisRef, AIWordAnalysisProps>(({
           return;
         }
         throw err;
-      }
-      
-      if (isMountedRef.current && 
-          currentRequestId === requestIdRef.current && 
-          !signal.aborted && 
-          !content.trim()) {
-        setDefinition('暂无解析内容');
       }
       
     } catch (err) {
@@ -202,7 +218,7 @@ const AIWordAnalysis = forwardRef<AIWordAnalysisRef, AIWordAnalysisProps>(({
         setLoadingDefinition(false);
       }
     }
-  }, [word, context, translation, cleanup, onAnalysisComplete, onError]);
+  }, [word, context, isFavorite, cleanup, onSaveToFavorites, onError]);
 
   // 重试获取定义
   const handleRetry = useCallback(() => {
@@ -212,7 +228,7 @@ const AIWordAnalysis = forwardRef<AIWordAnalysisRef, AIWordAnalysisProps>(({
   }, [word, fetchAIDefinition]);
 
   // 开始AI解析
-  const handleStartParsing = useCallback(() => {
+  const handleStartAnalysis = useCallback(() => {
     if (word.trim()) {
       fetchAIDefinition();
     }
@@ -234,29 +250,6 @@ const AIWordAnalysis = forwardRef<AIWordAnalysisRef, AIWordAnalysisProps>(({
       handleRefreshAnalysis();
     }
   }, [onRefresh, handleRefreshAnalysis]);
-
-  // 当word或context变化时重置状态
-  useEffect(() => {
-    resetState();
-    
-    // 如果数据库有数据，直接显示
-    if (hasWordData && word.trim()) {
-      const loadDefinitionFromDB = async () => {
-        try {
-          const wordData = await database.getWordData(word);
-          if (wordData && wordData.definition && isMountedRef.current) {
-            setDefinition(wordData.definition);
-            setIsParsed(true);
-            onAnalysisComplete?.(wordData.definition);
-          }
-        } catch (error) {
-          console.error('从数据库加载定义失败:', error);
-        }
-      };
-      
-      loadDefinitionFromDB();
-    }
-  }, [word, context, hasWordData, resetState, onAnalysisComplete]);
 
   const markdownStyles = StyleSheet.create({
     body: {
@@ -387,10 +380,10 @@ const AIWordAnalysis = forwardRef<AIWordAnalysisRef, AIWordAnalysisProps>(({
                 <Text style={[styles.retryButtonText, { color: theme.colors.onPrimary }]}>重试</Text>
               </TouchableOpacity>
             </View>
-          ) : definition ? (
+          ) : currentContent ? (
             <View style={styles.markdownWrapper}>
               <Markdown style={markdownStyles}>
-                {definition}
+                {currentContent}
               </Markdown>
             </View>
           ) : (
@@ -402,7 +395,7 @@ const AIWordAnalysis = forwardRef<AIWordAnalysisRef, AIWordAnalysisProps>(({
               </Text>
               <TouchableOpacity 
                 style={[styles.startParsingButton, { backgroundColor: theme.colors.primary }]} 
-                onPress={handleStartParsing}
+                onPress={handleStartAnalysis}
                 disabled={loadingDefinition}
               >
                 {loadingDefinition ? (
@@ -423,6 +416,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     borderRadius: 12,
+    marginHorizontal:16,
   },
   header: {
     flexDirection: 'row',

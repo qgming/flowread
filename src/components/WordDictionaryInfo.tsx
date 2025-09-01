@@ -4,218 +4,311 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { dictionaryService, WordDetails } from '../services/dictionary';
 import { DeepLXTranslationService } from '../services/translation';
 import { loadSettings } from '../utils/settingsStorage';
-import database from '../database/database';
 
 interface WordDictionaryInfoProps {
   word: string;
-  onAudioPress?: (audioUrl: string) => void;
-  onDataUpdate?: (data: { translation: string; wordDetails: any }) => void;
 }
 
-export default function WordDictionaryInfo({ word, onAudioPress, onDataUpdate }: WordDictionaryInfoProps) {
-  const { theme } = useTheme();
+export default function WordDictionaryInfo({ word }: WordDictionaryInfoProps) {
+ const { theme } = useTheme();
   const [wordDetails, setWordDetails] = useState<WordDetails | null>(null);
   const [translation, setTranslation] = useState<string>('');
-  const [loadingDetails, setLoadingDetails] = useState(false);
-  const [loadingTranslation, setLoadingTranslation] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [translationError, setTranslationError] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [isTranslating, setIsTranslating] = useState(false);
+
+  // 标签中文映射表
+  const tagMapping: { [key: string]: string } = {
+    'zk': '中考',
+    'gk': '高考',
+    'cet4': '四级',
+    'cet6': '六级',
+    'ky': '考研',
+    'toefl': '托福',
+    'ielts': '雅思',
+    'gre': 'GRE',
+    'oxford': '牛津3000',
+    'collins': '柯林斯'
+  };
+
+  // 加载单词数据
+  const loadWordData = async () => {
+    if (!word.trim()) return;
+
+    setLoading(true);
+    setIsTranslating(false);
+    setTranslationError('');
+    try {
+      // 从wordsdb获取完整单词信息
+      const details = await dictionaryService.getWordDetails(word);
+      setWordDetails(details);
+      
+      // 获取翻译
+      let currentTranslation = '';
+      if (details?.translation) {
+        currentTranslation = details.translation;
+      } else {
+        // 如果没有翻译，使用DeepLX获取
+        setIsTranslating(true);
+        const settings = await loadSettings();
+        const translationService = new DeepLXTranslationService(settings.deeplx);
+        try {
+          currentTranslation = await translationService.translate({
+            text: word,
+            target_lang: 'ZH',
+          });
+          setTranslationError('');
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : '翻译失败';
+          setTranslationError(errorMessage);
+          console.error('翻译失败:', error);
+        }
+        setIsTranslating(false);
+      }
+      setTranslation(currentTranslation);
+      
+    } catch (error) {
+      console.error('加载单词数据失败:', error);
+      setIsTranslating(false);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (word.trim()) {
-      fetchAllWordData();
-    }
+    loadWordData();
   }, [word]);
-
-  useEffect(() => {
-    if (onDataUpdate && (translation || wordDetails)) {
-      onDataUpdate({
-        translation,
-        wordDetails
-      });
-    }
-  }, [translation, wordDetails, onDataUpdate]);
-
-  const fetchAllWordData = async () => {
-    setError(null);
-    
-    // 分别设置加载状态，实现谁先加载谁先显示
-    setLoadingDetails(true);
-    setLoadingTranslation(true);
-    
-    try {
-      // 并行获取但不等待全部完成
-      Promise.allSettled([
-        fetchWordDetails(word),
-        fetchTranslation(word)
-      ]);
-    } catch (err) {
-      setError('获取单词信息失败');
-      console.error('获取单词信息失败:', err);
-    }
-  };
-
-  const fetchWordDetails = async (text: string) => {
-    try {
-      const details = await dictionaryService.getWordDetails(text);
-      if (details) {
-        setWordDetails(details);
-      }
-    } catch (err) {
-      console.error('获取单词详情失败:', err);
-    } finally {
-      setLoadingDetails(false);
-    }
-  };
-
-  const fetchTranslation = async (text: string): Promise<void> => {
-    try {
-      // 优先检查本地数据库
-      const wordData = await database.getWordData(text);
-      
-      if (wordData && wordData.translation && wordData.translation.trim() !== '') {
-        // 本地数据库有翻译，直接使用
-        setTranslation(wordData.translation);
-        setLoadingTranslation(false);
-        return;
-      }
-      
-      // 本地没有翻译，调用API获取
-      const settings = await loadSettings();
-      const translationService = new DeepLXTranslationService(settings.deeplx);
-      const result = await translationService.translate({
-        text: text,
-        target_lang: 'ZH',
-      });
-      setTranslation(result);
-    } catch (err) {
-      console.error('翻译获取失败:', err);
-      setTranslation('翻译失败');
-    } finally {
-      setLoadingTranslation(false);
-    }
-  };
 
   const renderWordHeader = () => {
     if (!word) return null;
 
     return (
       <View style={styles.headerContainer}>
-        <View style={styles.leftSection}>
-          <Text style={[styles.wordText, { color: theme.colors.text }]}>
-            {word}
-          </Text>
-          <View style={styles.capsulesRow}>
-            {wordDetails?.phonetic && (
-              <View style={[styles.phoneticCapsule, { backgroundColor: theme.colors.surfaceVariant }]}>
-                <Text style={[styles.phoneticText, { color: theme.colors.textSecondary }]}>
-                  {wordDetails.phonetic}
-                </Text>
-              </View>
-            )}
-            {loadingDetails && !wordDetails?.phonetic && (
-              <ActivityIndicator size="small" color={theme.colors.textSecondary} />
-            )}
-            
-            {loadingTranslation && !translation ? (
-              <ActivityIndicator size="small" color={theme.colors.primary} />
-            ) : translation ? (
-              <View style={[styles.translationCapsule, { backgroundColor: theme.colors.primaryContainer }]}>
-                <Text style={[styles.translationText, { color: theme.colors.primary }]}>
-                  {translation}
-                </Text>
-              </View>
-            ) : null}
-          </View>
+        <Text style={[styles.wordText, { color: theme.colors.text }]}>
+          {word}
+        </Text>
+        <View style={styles.capsulesRow}>
+          {wordDetails?.phonetic && (
+            <View style={[styles.phoneticCapsule, { backgroundColor: theme.colors.surfaceVariant }]}>
+              <Text style={[styles.phoneticText, { color: theme.colors.textSecondary }]}>
+                {wordDetails.phonetic}
+              </Text>
+            </View>
+          )}
+          
+          {isTranslating && (
+            <View style={[styles.translatingCapsule, { backgroundColor: theme.colors.primaryContainer }]}>
+              <Text style={[styles.translatingText, { color: theme.colors.primary }]}>
+                翻译中...
+              </Text>
+            </View>
+          )}
+          
+          {translationError && !isTranslating && (
+            <TouchableOpacity 
+              style={[styles.errorCapsule, { backgroundColor: theme.colors.primaryContainer }]}
+              onPress={() => loadWordData()}
+            >
+              <Text style={[styles.errorText, { color: theme.colors.error }]}>
+                翻译失败: {translationError}
+              </Text>
+            </TouchableOpacity>
+          )}
+          
+          {translation && !isTranslating && !translationError && (
+            <>
+              {renderTranslationCapsules()}
+            </>
+          )}
         </View>
       </View>
     );
   };
 
-  const renderMeanings = () => {
-    if (!wordDetails?.meanings || wordDetails.meanings.length === 0) {
+  const renderTranslationCapsules = () => {
+    if (!translation) return null;
+    
+    // 处理转义字符，将\\n替换为\n，然后按换行符分割
+    const normalizedTranslation = translation.replace(/\\n/g, '\n');
+    
+    // 按换行符分割翻译，并确保每个部分都显示为独立胶囊
+    const translations = normalizedTranslation
+      .split('\n')
+      .map(t => t.trim())
+      .filter(t => t.length > 0);
+    
+    if (translations.length === 0) return null;
+    
+    return (
+      <>
+        {translations.map((trans, index) => (
+          <View 
+            key={index} 
+            style={[styles.translationCapsule, { backgroundColor: theme.colors.primaryContainer }]}
+          >
+            <Text style={[styles.translationText, { color: theme.colors.primary }]}>
+              {trans}
+            </Text>
+          </View>
+        ))}
+      </>
+    );
+  };
+
+  const renderTags = () => {
+    if (!wordDetails?.tags || wordDetails.tags.length === 0) {
       return null;
     }
 
+    // 转换标签为中文
+    const chineseTags = wordDetails.tags.map(tag => tagMapping[tag] || tag);
+
     return (
-      <View style={styles.meaningsContainer}>
+      <View style={styles.tagsContainer}>
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-          释义
+          考试信息
         </Text>
-        {wordDetails.meanings.map((meaning, index) => (
-          <View key={index} style={styles.meaningItem}>
-            <Text style={[styles.partOfSpeech, { color: theme.colors.primary }]}>
-              {meaning.partOfSpeech}
-            </Text>
-            {meaning.definitions.map((def, defIndex) => (
-              <View key={defIndex} style={styles.definitionItem}>
-                <Text style={[styles.definitionText, { color: theme.colors.text }]}>
-                  {defIndex + 1}. {def.definition}
-                </Text>
-                {def.example && (
-                  <Text style={[styles.exampleText, { color: theme.colors.textSecondary }]}>
-                    例: {def.example}
-                  </Text>
-                )}
-                {def.synonyms && def.synonyms.length > 0 && (
-                  <Text style={[styles.synonymsText, { color: theme.colors.textSecondary }]}>
-                    同义词: {def.synonyms.join(', ')}
-                  </Text>
-                )}
-                {def.antonyms && def.antonyms.length > 0 && (
-                  <Text style={[styles.antonymsText, { color: theme.colors.textSecondary }]}>
-                    反义词: {def.antonyms.join(', ')}
-                  </Text>
-                )}
-              </View>
-            ))}
-            {meaning.synonyms && meaning.synonyms.length > 0 && (
-              <Text style={[styles.synonymsText, { color: theme.colors.textSecondary }]}>
-                同义词: {meaning.synonyms.join(', ')}
+        <View style={styles.tagsRow}>
+          {chineseTags.map((tag, index) => (
+            <View key={index} style={[styles.tag, { backgroundColor: theme.colors.surfaceVariant }]}>
+              <Text style={[styles.tagText, { color: theme.colors.textSecondary }]}>
+                {tag}
               </Text>
-            )}
-            {meaning.antonyms && meaning.antonyms.length > 0 && (
-              <Text style={[styles.antonymsText, { color: theme.colors.textSecondary }]}>
-                反义词: {meaning.antonyms.join(', ')}
-              </Text>
-            )}
-          </View>
-        ))}
+            </View>
+          ))}
+        </View>
       </View>
     );
   };
 
-  if ((loadingDetails || loadingTranslation) && !wordDetails && !translation) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color={theme.colors.primary} />
-        <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
-          加载单词信息...
-        </Text>
-      </View>
-    );
-  }
+  const renderFrequency = () => {
+    const hasFrequencyData = wordDetails?.bnc || wordDetails?.frq || wordDetails?.collins || (wordDetails?.oxford && wordDetails.oxford !== '0');
 
-  if (error) {
+    if (!hasFrequencyData) {
+      return null;
+    }
+
+    // 生成星级显示
+    const renderStars = (level: string) => {
+      const starCount = parseInt(level) || 0;
+      return '⭐'.repeat(starCount);
+    };
+
     return (
-      <View style={styles.errorContainer}>
-        <Text style={[styles.errorText, { color: theme.colors.error }]}>
-          {error}
+      <View style={styles.frequencyContainer}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+          词汇信息
         </Text>
+        <View style={styles.frequencyRow}>
+          {wordDetails?.collins && (
+            <View style={[styles.frequencyItem, { backgroundColor: theme.colors.surfaceVariant }]}>
+              <Text style={[styles.frequencyLabel, { color: theme.colors.textSecondary }]}>
+                柯林斯星级
+              </Text>
+              <Text style={[styles.frequencyValue, { color: theme.colors.text }]}>
+                {renderStars(wordDetails.collins)}
+              </Text>
+            </View>
+          )}
+          {wordDetails?.oxford && wordDetails.oxford !== '0' && (
+            <View style={[styles.frequencyItem, { backgroundColor: theme.colors.surfaceVariant }]}>
+              <Text style={[styles.frequencyLabel, { color: theme.colors.textSecondary }]}>
+                牛津3000
+              </Text>
+              <Text style={[styles.frequencyValue, { color: theme.colors.text }]}>
+                ✓
+              </Text>
+            </View>
+          )}
+          {wordDetails?.bnc && (
+            <View style={[styles.frequencyItem, { backgroundColor: theme.colors.surfaceVariant }]}>
+              <Text style={[styles.frequencyLabel, { color: theme.colors.textSecondary }]}>
+                BNC词频
+              </Text>
+              <Text style={[styles.frequencyValue, { color: theme.colors.text }]}>
+                #{wordDetails.bnc}
+              </Text>
+            </View>
+          )}
+          {wordDetails?.frq && (
+            <View style={[styles.frequencyItem, { backgroundColor: theme.colors.surfaceVariant }]}>
+              <Text style={[styles.frequencyLabel, { color: theme.colors.textSecondary }]}>
+                当代词频
+              </Text>
+              <Text style={[styles.frequencyValue, { color: theme.colors.text }]}>
+                #{wordDetails.frq}
+              </Text>
+            </View>
+          )}
+        </View>
       </View>
     );
-  }
+  };
+
+  const renderExchange = () => {
+    if (!wordDetails?.exchange) {
+      return null;
+    }
+
+    const exchangeMap: { [key: string]: string } = {
+      'p': '过去式',
+      'd': '过去分词',
+      'i': '现在分词',
+      '3': '第三人称单数',
+      'r': '比较级',
+      't': '最高级',
+      's': '复数形式',
+      '0': '原形',
+      '1': '变形'
+    };
+
+    const exchanges = wordDetails.exchange.split('/')
+      .filter(ex => ex.trim())
+      .map(ex => {
+        const [type, word] = ex.split(':');
+        return { type: exchangeMap[type] || type, word };
+      });
+
+    if (exchanges.length === 0) {
+      return null;
+    }
+
+    return (
+      <View style={styles.exchangeContainer}>
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+          词形变化
+        </Text>
+        <View style={styles.exchangeRow}>
+          {exchanges.map((item, index) => (
+            <View key={index} style={[styles.exchangeItem, { backgroundColor: theme.colors.surfaceVariant }]}>
+              <Text style={[styles.exchangeType, { color: theme.colors.textSecondary }]}>
+                {item.type}
+              </Text>
+              <Text style={[styles.exchangeWord, { color: theme.colors.text }]}>
+                {item.word}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: theme.colors.modalBackground }]}>
       <View style={styles.content}>
         {renderWordHeader()}
-        {renderMeanings()}
+        {renderTags()}
+        {renderFrequency()}
+        {renderExchange()}
       </View>
     </ScrollView>
   );
@@ -226,35 +319,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 16,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  loadingText: {
-    marginTop: 8,
-    fontSize: 14,
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  errorText: {
-    marginTop: 8,
-    fontSize: 14,
-    textAlign: 'center',
   },
   headerContainer: {
     marginBottom: 20,
-  },
-  leftSection: {
-    alignItems: 'flex-start',
   },
   wordText: {
     fontSize: 28,
@@ -265,6 +334,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    flexWrap: 'wrap',
   },
   phoneticCapsule: {
     borderRadius: 16,
@@ -275,6 +345,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontStyle: 'italic',
   },
+  translatingCapsule: {
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+ translatingText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  errorCapsule: {
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  errorText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  translationsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  translationRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
   translationCapsule: {
     borderRadius: 16,
     paddingHorizontal: 12,
@@ -284,43 +382,69 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  meaningsContainer: {
-    marginBottom: 20,
+  tagsContainer: {
+    marginBottom: 16,
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tag: {
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  tagText: {
+    fontSize: 12,
+  },
+  frequencyContainer: {
+    marginBottom: 16,
+  },
+  frequencyRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  frequencyItem: {
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignItems: 'center',
+  },
+  frequencyLabel: {
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  frequencyValue: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  exchangeContainer: {
+    marginBottom: 16,
+  },
+  exchangeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  exchangeItem: {
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignItems: 'center',
+  },
+  exchangeType: {
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  exchangeWord: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 12,
-  },
-  meaningItem: {
-    marginBottom: 16,
-  },
-  partOfSpeech: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-    fontStyle: 'italic',
-  },
-  definitionItem: {
-    marginBottom: 12,
-    paddingLeft: 8,
-  },
-  definitionText: {
-    fontSize: 15,
-    lineHeight: 20,
-    marginBottom: 4,
-  },
-  exampleText: {
-    fontSize: 14,
-    fontStyle: 'italic',
-    marginBottom: 4,
-  },
-  synonymsText: {
-    fontSize: 14,
-    marginBottom: 2,
-  },
-  antonymsText: {
-    fontSize: 14,
-    marginBottom: 2,
   },
 });

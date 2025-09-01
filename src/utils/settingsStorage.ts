@@ -30,7 +30,6 @@ export interface SpeechSettings {
   autoSpeak: boolean;
   rate: number;
   language: string;
-  audioSource: 'api' | 'system';
 }
 
 export type ThemeMode = 'system' | 'light' | 'dark';
@@ -92,7 +91,7 @@ export const defaultAIProviders = {
 };
 
 export const defaultDeepLXConfig: DeepLXConfig = {
-  url: 'https://dplx.xi-xu.me/translate',
+  url: 'https://deeplx.vercel.app/translate',
   apiKey: '',
 };
 
@@ -117,7 +116,6 @@ export const defaultSpeechSettings: SpeechSettings = {
   autoSpeak: false,
   rate: 0.7,
   language: 'en-US',
-  audioSource: 'api'
 };
 
 export const defaultSettings: Settings = {

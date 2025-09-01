@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { ThemeProvider } from './src/theme/ThemeContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import database from './src/database/database';
+import { ecdictService } from './src/services/ecdictService';
 
 // 防止启动画面自动隐藏
 SplashScreen.preventAutoHideAsync();
@@ -14,8 +15,11 @@ export default function App() {
   useEffect(() => {
     async function prepare() {
       try {
-        // 初始化数据库
-        await database.init();
+        // 并行初始化所有数据库
+        await Promise.all([
+          database.init(),
+          ecdictService.init()
+        ]);
         
         // 可以在这里添加其他初始化任务
         // 如：加载字体、获取用户设置等

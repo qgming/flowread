@@ -14,7 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import database from '../database/database';
 import BottomActionSheet from '../components/BottomActionSheet';
-import WordDetailSheet from '../components/WordDetailSheet';
+import WordDefinitionSheet from '../components/WordDefinitionSheet';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from '../theme/ThemeContext';
@@ -23,8 +23,7 @@ import { eventBus, EVENTS } from '../utils/eventBus';
 interface FavoriteWord {
   id: number;
   word: string;
-  translation: string;
-  definition: string;
+  ai_explanation: string;
   created_at: string;
 }
 
@@ -41,8 +40,8 @@ export default function FavoritesScreen() {
   const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(true);
   const [bottomSheetVisible, setBottomSheetVisible] = useState(false);
-  const [wordDetailVisible, setWordDetailVisible] = useState(false);
-  const [selectedWord, setSelectedWord] = useState<FavoriteWord | null>(null);
+  const [wordDefinitionVisible, setWordDefinitionVisible] = useState(false);
+  const [selectedWord, setSelectedWord] = useState<string>('');
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({});
 
   // 加载收藏单词
@@ -174,16 +173,16 @@ export default function FavoritesScreen() {
     }
   };
 
-  // 打开单词详情
-  const openWordDetail = (word: FavoriteWord) => {
+   // 打开单词定义
+  const openWordDefinition = (word: string) => {
     setSelectedWord(word);
-    setWordDetailVisible(true);
+    setWordDefinitionVisible(true);
   };
 
-  // 关闭单词详情
-  const closeWordDetail = () => {
-    setWordDetailVisible(false);
-    setSelectedWord(null);
+  // 关闭单词定义
+  const closeWordDefinition = () => {
+    setWordDefinitionVisible(false);
+    setSelectedWord('');
   };
 
   const actionItems = [
@@ -196,7 +195,7 @@ export default function FavoritesScreen() {
   const renderWordItem = ({ item }: { item: FavoriteWord }) => (
     <TouchableOpacity 
       style={[styles.wordItem, { borderColor: theme.colors.divider }]}
-      onPress={() => openWordDetail(item)}
+      onPress={() => openWordDefinition(item.word)}
     >
       <View style={styles.wordLeft}>
         <Text style={[styles.wordText, { color: theme.colors.text }]}>{item.word}</Text>
@@ -321,16 +320,17 @@ export default function FavoritesScreen() {
         title="更多操作"
       />
 
-      {/* 单词详情抽屉 */}
-      {selectedWord && (
-        <WordDetailSheet
-          visible={wordDetailVisible}
-          onClose={closeWordDetail}
-          word={selectedWord.word}
-          translation={selectedWord.translation}
-          definition={selectedWord.definition}
-        />
-      )}
+      {/* 单词定义抽屉 */}
+      <WordDefinitionSheet
+        visible={wordDefinitionVisible}
+        onClose={closeWordDefinition}
+        word={selectedWord}
+        context=""
+        onFavoriteChange={(word, isFavorite) => {
+          // 收藏状态变化时，事件总线会处理数据刷新
+          console.log(`单词 ${word} 收藏状态: ${isFavorite}`);
+        }}
+      />
 
       {/* 悬浮胶囊按钮 */}
       <View style={styles.floatingButtonContainer}>

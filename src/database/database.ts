@@ -5,13 +5,7 @@ const DATABASE_NAME = 'flowread.db';
 export interface FavoriteWord {
   id: number;
   word: string;
-  translation: string;
-  definition: string;
-  phonetic?: string;
-  phonetics?: string;
-  meanings?: string;
-  audio_url?: string;
-  source_urls?: string;
+  ai_explanation: string;
   created_at: string;
 }
 
@@ -57,13 +51,7 @@ class Database {
         CREATE TABLE IF NOT EXISTS favorite_words (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           word TEXT NOT NULL,
-          translation TEXT NOT NULL,
-          definition TEXT NOT NULL,
-          phonetic TEXT,
-          phonetics TEXT,
-          meanings TEXT,
-          audio_url TEXT,
-          source_urls TEXT,
+          ai_explanation TEXT NOT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           UNIQUE(word) ON CONFLICT REPLACE
         );
@@ -173,13 +161,13 @@ class Database {
     );
   }
 
-  // Favorite words methods
-  async addFavoriteWord(word: string, translation: string, definition: string): Promise<void> {
+  // Favorite words methods - 极简设计
+  async addFavoriteWord(word: string, ai_explanation: string): Promise<void> {
     await this.ensureInitialized();
     
     await this.db!.runAsync(
-      'INSERT INTO favorite_words (word, translation, definition) VALUES (?, ?, ?)',
-      [word, translation, definition]
+      'INSERT INTO favorite_words (word, ai_explanation) VALUES (?, ?)',
+      [word, ai_explanation]
     );
   }
 
@@ -199,8 +187,7 @@ class Database {
     return (result as any[]).map(row => ({
       id: row.id,
       word: row.word,
-      translation: row.translation,
-      definition: row.definition,
+      ai_explanation: row.ai_explanation,
       created_at: row.created_at
     }));
   }
@@ -215,8 +202,8 @@ class Database {
     return !!result;
   }
 
-  // 获取单词的完整数据
-  async getWordData(word: string): Promise<FavoriteWord | null> {
+  // 获取单个收藏单词
+  async getFavoriteWord(word: string): Promise<FavoriteWord | null> {
     await this.ensureInitialized();
     
     const result = await this.db!.getFirstAsync(
@@ -229,61 +216,9 @@ class Database {
     return {
       id: (result as any).id,
       word: (result as any).word,
-      translation: (result as any).translation,
-      definition: (result as any).definition,
-      phonetic: (result as any).phonetic,
-      phonetics: (result as any).phonetics,
-      meanings: (result as any).meanings,
-      audio_url: (result as any).audio_url,
-      source_urls: (result as any).source_urls,
+      ai_explanation: (result as any).ai_explanation,
       created_at: (result as any).created_at
     };
-  }
-
-  // 更新单词的完整数据
-  async updateWordData(
-    word: string, 
-    translation: string, 
-    definition: string,
-    wordDetails?: {
-      phonetic?: string;
-      phonetics?: any;
-      meanings?: any;
-      audioUrl?: string;
-      sourceUrls?: string[];
-    }
-  ): Promise<void> {
-    await this.ensureInitialized();
-    
-    const query = `
-      INSERT OR REPLACE INTO favorite_words 
-      (word, translation, definition, phonetic, phonetics, meanings, audio_url, source_urls) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-    
-    await this.db!.runAsync(
-      query,
-      [
-        word, 
-        translation, 
-        definition,
-        wordDetails?.phonetic || null,
-        wordDetails?.phonetics ? JSON.stringify(wordDetails.phonetics) : null,
-        wordDetails?.meanings ? JSON.stringify(wordDetails.meanings) : null,
-        wordDetails?.audioUrl || null,
-        wordDetails?.sourceUrls ? JSON.stringify(wordDetails.sourceUrls) : null
-      ]
-    );
-  }
-
-  // 向后兼容的简单更新
-  async updateWordDataSimple(word: string, translation: string, definition: string): Promise<void> {
-    await this.ensureInitialized();
-    
-    await this.db!.runAsync(
-      'INSERT OR REPLACE INTO favorite_words (word, translation, definition) VALUES (?, ?, ?)',
-      [word, translation, definition]
-    );
   }
 }
 
