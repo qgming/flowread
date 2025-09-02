@@ -10,11 +10,6 @@ export interface AIProviderConfig {
   temperature: number;
 }
 
-export interface DeepLXConfig {
-  url: string;
-  apiKey: string;
-}
-
 export interface AnalysisSettings {
   wordAnalysisProvider: keyof Settings['aiProviders'];
   articleAnalysisProvider: keyof Settings['aiProviders'];
@@ -22,7 +17,7 @@ export interface AnalysisSettings {
 
 export interface TranslationSettings {
   targetLanguage: string;
-  translationEngine: 'bing' | 'deeplx' | 'google' | 'deepseek' | 'siliconflow' | 'zhipu';
+  translationEngine: 'bing' | 'google' | 'deepseek' | 'siliconflow' | 'zhipu' | 'flowglm' | 'flowqwen';
   translationPrompt: string;
 }
 
@@ -38,12 +33,12 @@ export interface Settings {
   themeMode: ThemeMode;
   isDarkMode?: boolean; // 向后兼容
   aiProviders: {
-    flowai: AIProviderConfig;
+    flowglm: AIProviderConfig;
+    flowqwen: AIProviderConfig;
     deepseek: AIProviderConfig;
     siliconflow: AIProviderConfig;
     zhipu: AIProviderConfig;
   };
-  deeplx: DeepLXConfig;
   translation: TranslationSettings;
   analysis: AnalysisSettings;
   speech: SpeechSettings;
@@ -52,12 +47,21 @@ export interface Settings {
 const SETTINGS_KEY = 'app_settings';
 
 export const defaultAIProviders = {
-  flowai: {
-    name: 'FlowAI',
+  flowglm: {
+    name: 'FlowGlm',
     description: 'FlowAI智能解析服务，无需配置即可使用',
     url: 'https://open.bigmodel.cn/api/paas/v4',
     apiKey: '8931aad033354a7ba4f2dc803a967d55.TWgLqfNA2Hr05UFR',
     model: 'glm-4.5-flash',
+    isEnabled: true,
+    temperature: 0.7,
+  },
+  flowqwen: {
+    name: 'FlowQwen',
+    description: '硅基流动提供的多样化AI模型，包括Qwen系列等开源模型',
+    url: 'https://api.siliconflow.cn/v1',
+    apiKey: 'sk-ktytpxmhzxqdemdyvmluguemdiubqonaznscuosdaofnqnvz',
+    model: 'Qwen/Qwen3-8B',
     isEnabled: true,
     temperature: 0.7,
   },
@@ -90,11 +94,6 @@ export const defaultAIProviders = {
   },
 };
 
-export const defaultDeepLXConfig: DeepLXConfig = {
-  url: 'https://deeplx.vercel.app/translate',
-  apiKey: '',
-};
-
 export const defaultTranslationSettings: TranslationSettings = {
   targetLanguage: 'ZH',
   translationEngine: 'bing',
@@ -108,8 +107,8 @@ Translate the above text enclosed with <translate_input> into {targetLanguage} w
 };
 
 export const defaultAnalysisSettings: AnalysisSettings = {
-  wordAnalysisProvider: 'flowai',
-  articleAnalysisProvider: 'flowai',
+  wordAnalysisProvider: 'flowglm',
+  articleAnalysisProvider: 'flowglm',
 };
 
 export const defaultSpeechSettings: SpeechSettings = {
@@ -121,7 +120,6 @@ export const defaultSpeechSettings: SpeechSettings = {
 export const defaultSettings: Settings = {
   themeMode: 'system',
   aiProviders: defaultAIProviders,
-  deeplx: defaultDeepLXConfig,
   translation: defaultTranslationSettings,
   analysis: defaultAnalysisSettings,
   speech: defaultSpeechSettings,
@@ -149,17 +147,16 @@ export const loadSettings = async (): Promise<Settings> => {
         themeMode = parsed.isDarkMode ? 'dark' : 'light';
       }
       
+      // 向后兼容：移除旧的deeplx配置
+      const { deeplx, ...rest } = parsed;
+      
       return {
         ...defaultSettings,
-        ...parsed,
+        ...rest,
         themeMode,
         aiProviders: {
           ...defaultAIProviders,
           ...(parsed.aiProviders || {}),
-        },
-        deeplx: {
-          ...defaultDeepLXConfig,
-          ...(parsed.deeplx || {}),
         },
         translation: {
           ...defaultTranslationSettings,

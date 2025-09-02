@@ -1,4 +1,4 @@
-import { TranslationService, TranslationRequest, LanguageCode } from './translation';
+import { TranslationService, TranslationRequest, LanguageCode, SUPPORTED_LANGUAGES } from './types';
 
 export class GoogleTranslationService implements TranslationService {
   private static readonly API_URL = 'https://translate.googleapis.com/translate_a/single';
@@ -7,7 +7,7 @@ export class GoogleTranslationService implements TranslationService {
    * 验证语言代码是否受支持
    */
   isLanguageSupported(langCode: string): boolean {
-    return langCode in require('./translation').SUPPORTED_LANGUAGES || langCode === 'auto';
+    return langCode in SUPPORTED_LANGUAGES || langCode === 'auto';
   }
 
   /**

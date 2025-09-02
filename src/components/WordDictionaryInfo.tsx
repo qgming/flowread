@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
 import { dictionaryService, WordDetails } from '../services/dictionary';
-import { DeepLXTranslationService } from '../services/translation';
+import { BingTranslationService } from '../services/translation';
 import { loadSettings } from '../utils/settingsStorage';
 
 interface WordDictionaryInfoProps {
@@ -54,14 +54,14 @@ export default function WordDictionaryInfo({ word }: WordDictionaryInfoProps) {
       if (details?.translation) {
         currentTranslation = details.translation;
       } else {
-        // 如果没有翻译，使用DeepLX获取
+        // 如果没有翻译，使用Bing翻译服务获取
         setIsTranslating(true);
         const settings = await loadSettings();
-        const translationService = new DeepLXTranslationService(settings.deeplx);
+        const translationService = new BingTranslationService();
         try {
-          currentTranslation = await translationService.translate({
+         currentTranslation = await translationService.translate({
             text: word,
-            target_lang: 'ZH',
+            target_lang: (settings.translation.targetLanguage as any) || 'ZH',
           });
           setTranslationError('');
         } catch (error) {

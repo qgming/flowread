@@ -6,7 +6,6 @@ import BottomTabNavigator from './BottomTabNavigator';
 import ArticleReaderScreen from '../screens/ArticleReaderScreen';
 import AISettingsScreen from '../screens/AISettingsScreen';
 import AIProviderConfigScreen from '../screens/AIProviderConfigScreen';
-import DeepLXSettingsScreen from '../screens/DeepLXSettingsScreen';
 import TranslationSettingsScreen from '../screens/TranslationSettingsScreen';
 import AnalysisSettingsScreen from '../screens/AnalysisSettingsScreen';
 import ImmersiveReadingScreen from '../screens/ImmersiveReadingScreen';
@@ -95,15 +94,6 @@ export default function RootNavigator() {
           component={AIProviderConfigScreen}
           options={{
             headerTitle: () => <HeaderTitle title="提供商配置" />,
-            headerBackTitle: '返回',
-            headerShadowVisible: false,
-          }}
-        />
-        <Stack.Screen 
-          name="DeepLXSettings" 
-          component={DeepLXSettingsScreen}
-          options={{
-            headerTitle: () => <HeaderTitle title="DeepL设置" />,
             headerBackTitle: '返回',
             headerShadowVisible: false,
           }}

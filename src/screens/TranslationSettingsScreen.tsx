@@ -12,7 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/RootNavigator';
 import { loadSettings, saveSettings, TranslationSettings } from '../utils/settingsStorage';
-import { SUPPORTED_LANGUAGES } from '../services/translation';
+import { SUPPORTED_LANGUAGES } from '../services/translation/types';
 import { useTheme } from '../theme/ThemeContext';
 import ModalSelector from '../components/ModalSelector';
 
@@ -65,8 +65,8 @@ export default function TranslationSettingsScreen() {
   const engineOptions = [
     { label: 'Bing翻译', value: 'bing' },
     { label: '谷歌翻译', value: 'google' },
-    { label: 'DeepLX', value: 'deeplx' },
-    { label: 'FlowAI', value: 'flowai' },
+    { label: 'FlowGlm（免费）', value: 'flowglm' },
+    { label: 'FlowQwen（免费）', value: 'flowqwen' },
     { label: 'DeepSeek', value: 'deepseek' },
     { label: '硅基流动', value: 'siliconflow' },
     { label: '智谱AI', value: 'zhipu' },

@@ -1,4 +1,4 @@
-import { TranslationService, TranslationRequest, LanguageCode } from './translation';
+import { TranslationService, TranslationRequest, LanguageCode, SUPPORTED_LANGUAGES } from './types';
 
 export class BingTranslationService implements TranslationService {
   private static readonly API_URL = 'https://api-edge.cognitive.microsofttranslator.com/translate';
@@ -8,7 +8,7 @@ export class BingTranslationService implements TranslationService {
    * 验证语言代码是否受支持
    */
   isLanguageSupported(langCode: string): boolean {
-    return langCode in require('./translation').SUPPORTED_LANGUAGES || langCode === 'auto';
+    return langCode in SUPPORTED_LANGUAGES || langCode === 'auto';
   }
 
   /**
@@ -37,17 +37,17 @@ export class BingTranslationService implements TranslationService {
         throw new Error(`翻译失败: ${response.status} ${response.statusText}`);
       }
 
-      const result = await response.json()
+      const result = await response.json();
       if (!result || !result[0] || !result[0].translations || !result[0].translations[0]) {
-        throw new Error('无效的翻译响应格式')
+        throw new Error('无效的翻译响应格式');
       }
 
-      return result[0].translations[0].text
+      return result[0].translations[0].text;
     } catch (error) {
       if (error instanceof Error) {
-        throw error
+        throw error;
       }
-      throw new Error(`翻译请求失败: ${String(error)}`)
+      throw new Error(`翻译请求失败: ${String(error)}`);
     }
   }
 
@@ -56,16 +56,16 @@ export class BingTranslationService implements TranslationService {
    */
   async testConnection(): Promise<boolean> {
     try {
-      const testText = 'Hello, world!'
+      const testText = 'Hello, world!';
       const result = await this.translate({
         text: testText,
         target_lang: 'ZH',
-      })
+      });
       
-      return Boolean(result && result !== testText)
+      return Boolean(result && result !== testText);
     } catch (error) {
-      console.error('Bing翻译连接测试失败:', error)
-      return false
+      console.error('Bing翻译连接测试失败:', error);
+      return false;
     }
   }
 
@@ -74,13 +74,13 @@ export class BingTranslationService implements TranslationService {
    */
   private async refreshToken(): Promise<string> {
     try {
-      const response = await fetch(BingTranslationService.AUTH_URL)
+      const response = await fetch(BingTranslationService.AUTH_URL);
       if (!response.ok) {
-        throw new Error(`获取令牌失败: ${response.status} ${response.statusText}`)
+        throw new Error(`获取令牌失败: ${response.status} ${response.statusText}`);
       }
-      return await response.text()
+      return await response.text();
     } catch (error) {
-      throw new Error(`获取Bing翻译令牌失败: ${String(error)}`)
+      throw new Error(`获取Bing翻译令牌失败: ${String(error)}`);
     }
   }
 
@@ -89,19 +89,19 @@ export class BingTranslationService implements TranslationService {
    */
   private validateRequest(request: TranslationRequest): void {
     if (!request.text || typeof request.text !== 'string') {
-      throw new Error('翻译文本不能为空')
+      throw new Error('翻译文本不能为空');
     }
 
     if (!request.target_lang) {
-      throw new Error('目标语言不能为空')
+      throw new Error('目标语言不能为空');
     }
 
     if (!this.isLanguageSupported(request.target_lang)) {
-      throw new Error(`不支持的目标语言: ${request.target_lang}`)
+      throw new Error(`不支持的目标语言: ${request.target_lang}`);
     }
 
     if (request.source_lang && request.source_lang !== 'auto' && !this.isLanguageSupported(request.source_lang)) {
-      throw new Error(`不支持的源语言: ${request.source_lang}`)
+      throw new Error(`不支持的源语言: ${request.source_lang}`);
     }
   }
 
@@ -111,5 +111,5 @@ export class BingTranslationService implements TranslationService {
 }
 
 export const createBingTranslationService = (): BingTranslationService => {
-  return new BingTranslationService()
-}
+  return new BingTranslationService();
+};

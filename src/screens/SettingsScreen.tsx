@@ -7,7 +7,7 @@ import { RootStackParamList } from '../navigation/RootNavigator';
 import { useTheme } from '../theme/ThemeContext';
 import { ThemeMode } from '../utils/settingsStorage';
 
-type SettingsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'AISettings' | 'DeepLXSettings' | 'TranslationSettings' | 'AnalysisSettings' | 'About'>
+type SettingsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'AISettings' | 'TranslationSettings' | 'AnalysisSettings' | 'About'>
 
 export default function SettingsScreen() {
   const { theme, themeMode, setThemeMode } = useTheme();
@@ -26,10 +26,6 @@ export default function SettingsScreen() {
 
   const navigateToAISettings = () => {
     navigation.navigate('AISettings');
-  };
-
-  const navigateToDeepLXSettings = () => {
-    navigation.navigate('DeepLXSettings');
   };
 
   const navigateToTranslationSettings = () => {
@@ -132,7 +128,7 @@ export default function SettingsScreen() {
             </TouchableOpacity>
         </View>
 
-        {/* AI与翻译服务 */}
+        {/* AI设置 */}
     <View style={[styles.section, { borderBottomColor: theme.colors.divider }]}>
             <TouchableOpacity 
               style={styles.settingItem} 
@@ -143,21 +139,6 @@ export default function SettingsScreen() {
                   <Ionicons name="hardware-chip-outline" size={22} color="#007AFF" />
                 </View>
                 <Text style={[styles.settingTitle, { color: theme.colors.text }]}>AI设置</Text>
-              </View>
-              <View style={styles.settingRight}>
-                <Ionicons name="chevron-forward" size={22} color="#c7c7cc" />
-              </View>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.settingItem} 
-              onPress={navigateToDeepLXSettings}
-            >
-              <View style={styles.settingLeft}>
-                <View style={styles.iconContainer}>
-                  <Ionicons name="settings-outline" size={22} color="#007AFF" />
-                </View>
-                <Text style={[styles.settingTitle, { color: theme.colors.text }]}>DeepL设置</Text>
               </View>
               <View style={styles.settingRight}>
                 <Ionicons name="chevron-forward" size={22} color="#c7c7cc" />
