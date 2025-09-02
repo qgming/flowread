@@ -1,10 +1,14 @@
 import { TranslationService, TranslationRequest, LanguageCode } from './translation';
 import { DeepLXTranslationService } from './translation';
+import { BingTranslationService } from './bingTranslation';
+import { GoogleTranslationService } from './googleTranslation';
 import { ChatService } from './chat';
 import { loadSettings } from '../utils/settingsStorage';
 
 export class EnhancedTranslationService implements TranslationService {
   private deeplxService: DeepLXTranslationService;
+  private bingService: BingTranslationService;
+  private googleService: GoogleTranslationService;
   private chatService: ChatService | null = null;
 
   constructor() {
@@ -12,19 +16,27 @@ export class EnhancedTranslationService implements TranslationService {
       url: '',
       apiKey: '',
     });
+    this.bingService = new BingTranslationService();
+    this.googleService = new GoogleTranslationService();
   }
 
   async translate(request: TranslationRequest): Promise<string> {
     const settings = await loadSettings();
     const { translationEngine, translationPrompt, targetLanguage } = settings.translation;
 
-    if (translationEngine === 'deeplx') {
+    if (translationEngine === 'bing') {
+      // 使用Bing翻译
+      return await this.bingService.translate(request);
+    } else if (translationEngine === 'deeplx') {
       // 使用DeepLX翻译
       this.deeplxService.updateConfig(settings.deeplx);
       return await this.deeplxService.translate(request);
+    } else if (translationEngine === 'google') {
+      // 使用谷歌翻译
+      return await this.googleService.translate(request);
     } else {
       // 使用大模型翻译
-      const providerConfig = settings.aiProviders[translationEngine];
+      const providerConfig = settings.aiProviders[translationEngine as keyof typeof settings.aiProviders];
       if (!providerConfig || !providerConfig.isEnabled) {
         throw new Error(`${providerConfig?.name || translationEngine} 未启用或未配置`);
       }
@@ -51,11 +63,15 @@ export class EnhancedTranslationService implements TranslationService {
     const settings = await loadSettings();
     const { translationEngine } = settings.translation;
 
-    if (translationEngine === 'deeplx') {
+    if (translationEngine === 'bing') {
+      return await this.bingService.testConnection();
+    } else if (translationEngine === 'deeplx') {
       this.deeplxService.updateConfig(settings.deeplx);
       return await this.deeplxService.testConnection();
+    } else if (translationEngine === 'google') {
+      return await this.googleService.testConnection();
     } else {
-      const providerConfig = settings.aiProviders[translationEngine];
+      const providerConfig = settings.aiProviders[translationEngine as keyof typeof settings.aiProviders];
       if (!providerConfig || !providerConfig.isEnabled) {
         return false;
       }

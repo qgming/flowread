@@ -63,6 +63,8 @@ export default function TranslationSettingsScreen() {
   }));
 
   const engineOptions = [
+    { label: 'Bing翻译', value: 'bing' },
+    { label: '谷歌翻译', value: 'google' },
     { label: 'DeepLX', value: 'deeplx' },
     { label: 'FlowAI', value: 'flowai' },
     { label: 'DeepSeek', value: 'deepseek' },

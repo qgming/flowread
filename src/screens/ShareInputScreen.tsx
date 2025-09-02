@@ -42,7 +42,7 @@ export default function ShareInputScreen() {
     setLoading(true);
     
     try {
-      const finalTitle = title.trim() || trimmedContent.substring(0, 10);
+      const finalTitle = title.trim() || trimmedContent.substring(0, 20);
       await Database.insertArticle(finalTitle, trimmedContent, []);
       
       Alert.alert('成功', '文章已保存', [
