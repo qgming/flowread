@@ -1,8 +1,9 @@
-import React, { useMemo, useCallback } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, StyleSheet, TouchableOpacity, Text, ActivityIndicator } from 'react-native';
 import { useTheme } from '../theme/ThemeContext';
+import { tokenizerService, Token } from '../services/tokenizer';
 
-interface PressableTextProps {
+interface AsyncPressableTextProps {
   text: string;
   onWordPress: (word: string, context: string) => void;
   wordStyle?: (word: string, index: number) => any;
@@ -11,46 +12,48 @@ interface PressableTextProps {
   favoriteWords?: Set<string>;
 }
 
-interface Token {
-  text: string;
-  type: 'word' | 'punctuation' | 'whitespace';
-  start: number;
-  end: number;
-}
-
-export default function PressableText({ 
+export default function AsyncPressableText({ 
   text, 
   onWordPress, 
   wordStyle,
   favoriteWords
-}: PressableTextProps) {
+}: AsyncPressableTextProps) {
   const { theme } = useTheme();
-  
-  // 使用精确的正则表达式进行英文分词
-  const tokens = useMemo(() => {
-    if (!text) return [];
+  const [tokens, setTokens] = useState<Token[]>([]);
+  const [isTokenizing, setIsTokenizing] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
     
-    const result: Token[] = [];
-    
-    // 精确匹配英文单词、缩写、标点符号和空白
-    // 匹配: 单词(包括缩写如don't)、标点符号、空白字符
-    const regex = /(\w+(?:'\w+)*|[^\w\s]+|\s+)/g;
-    let match;
-    
-    while ((match = regex.exec(text)) !== null) {
-      const matchedText = match[0];
-      const isWord = /^\w+(?:'\w+)*$/.test(matchedText);
-      const isWhitespace = /^\s+$/.test(matchedText);
-      
-      result.push({
-        text: matchedText,
-        type: isWord ? 'word' : isWhitespace ? 'whitespace' : 'punctuation',
-        start: match.index,
-        end: match.index + matchedText.length
-      });
-    }
-    
-    return result;
+    const tokenizeText = async () => {
+      if (!text) {
+        setTokens([]);
+        return;
+      }
+
+      setIsTokenizing(true);
+      try {
+        const tokenized = await tokenizerService.tokenizeAsync(text);
+        if (isMounted) {
+          setTokens(tokenized);
+        }
+      } catch (error) {
+        console.error('分词失败:', error);
+        if (isMounted) {
+          setTokens([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsTokenizing(false);
+        }
+      }
+    };
+
+    tokenizeText();
+
+    return () => {
+      isMounted = false;
+    };
   }, [text]);
 
   const handleWordPress = useCallback((word: string) => {
@@ -62,6 +65,14 @@ export default function PressableText({
   };
 
   const renderTokens = () => {
+    if (isTokenizing) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color={theme.colors.primary} />
+        </View>
+      );
+    }
+
     return tokens.map((token, index) => {
       if (token.type === 'whitespace') {
         return (
@@ -137,5 +148,9 @@ const styles = StyleSheet.create({
   punctuation: {
     fontSize: 18,
     lineHeight: 32,
+  },
+  loadingContainer: {
+    paddingVertical: 10,
+    alignItems: 'center',
   },
 });

@@ -25,7 +25,7 @@ export default function App() {
         // 如：加载字体、获取用户设置等
         
         // 模拟额外加载时间，确保启动画面显示足够长
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 600));
         
       } catch (e) {
         console.warn('应用初始化失败:', e);

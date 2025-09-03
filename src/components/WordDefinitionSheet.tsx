@@ -13,7 +13,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import database from '../database/database';
 import { loadSettings } from '../utils/settingsStorage';
-import { DeepLXTranslationService } from '../services/translation';
 import AIWordAnalysis from './AIWordAnalysis';
 import WordDictionaryInfo from './WordDictionaryInfo';
 import { useTheme } from '../theme/ThemeContext';

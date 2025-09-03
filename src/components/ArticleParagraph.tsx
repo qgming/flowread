@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import PressableText from './PressableText';
+import AsyncPressableText from './AsyncPressableText';
 import { useTheme } from '../theme/ThemeContext';
 
 interface ArticleParagraphProps {
@@ -26,7 +26,7 @@ export default function ArticleParagraph({
 
   return (
     <View style={styles.paragraphWrapper}>
-      <PressableText
+      <AsyncPressableText
         text={original}
         onWordPress={onWordPress}
         favoriteWords={favoriteWords}
